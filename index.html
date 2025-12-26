@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEON WARFARE: JOKER EDITION (PRO UPDATE)</title>
+    <title>NEON WARFARE: JOKER EDITION (FIXED)</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
@@ -42,22 +42,21 @@
             border-radius: 12px; 
             padding: 20px; 
             position: relative; 
-            transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1); /* Plynulá animace změny velikosti */
+            transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1); 
             box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
-            min-width: 0; /* Prevents flexbox overflow */
+            min-width: 0; 
         }
 
-        /* STYLY PRO KOMPAKTNÍ REŽIM (NEAKTIVNÍ HRÁČ) */
         .player-panel.compact {
-            flex: 0 0 auto; /* Smrskne se na obsah */
-            width: 280px; /* Fixní šířka pro neaktivního hráče na desktopu */
+            flex: 0 0 auto; 
+            width: 280px; 
             opacity: 0.6;
             transform: scale(0.95);
             background: rgba(10, 10, 15, 0.8);
         }
         
         .player-panel.active { 
-            flex: 2; /* Aktivní hráč zabírá více místa */
+            flex: 2; 
             border-color: var(--theme-color); 
             box-shadow: 0 0 40px rgba(0,0,0,0.5), inset 0 0 0 1px var(--theme-color); 
             transform: scale(1); 
@@ -65,7 +64,6 @@
             opacity: 1;
         }
         
-        /* Obal pro obsah, který se má schovat */
         .game-content {
             display: flex;
             flex-direction: column;
@@ -74,17 +72,14 @@
             transition: opacity 0.3s;
         }
 
-        /* Schování obsahu v kompaktním režimu */
-        .player-panel.compact .game-content {
-            display: none;
-        }
+        .player-panel.compact .game-content { display: none; }
         
         .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .player-name { font-family: var(--font-head); font-size: 1.6rem; font-weight: 900; color: var(--theme-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .ap-badge { background: #222; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 1.1rem; border: 1px solid #444; white-space: nowrap;}
         
-        .bars-container { display: flex; flex-direction: column; gap: 8px; background: #111; padding: 10px; border-radius: 8px; border: 1px solid #333; margin-bottom: 0; /* Margin bottom removed handled by game-content gap */ }
-        .player-panel.active .bars-container { margin-bottom: 15px; } /* Margin added back when active */
+        .bars-container { display: flex; flex-direction: column; gap: 8px; background: #111; padding: 10px; border-radius: 8px; border: 1px solid #333; margin-bottom: 0; }
+        .player-panel.active .bars-container { margin-bottom: 15px; }
 
         .bar-row { position: relative; width: 100%; display: flex; align-items: center; }
         .bar-icon { width: 25px; font-size: 1.2rem; text-align: center; margin-right: 10px; }
@@ -150,7 +145,6 @@
 
         @media (max-width: 900px) {
             .arena { flex-direction: column; padding: 10px; gap: 10px; overflow-y: auto; display: block; }
-            /* Na mobilu se panely řadí pod sebe, compact funguje jako accordion */
             .player-panel { width: 100%; margin-bottom: 10px; min-height: auto; }
             .player-panel.compact { width: 100%; height: auto; padding-bottom: 10px; opacity: 0.7; }
             .machine-container { min-height: 120px; }
@@ -173,7 +167,6 @@
     </header>
 
     <div class="arena">
-        
         <div class="player-panel inactive p1-theme" id="panel-p1">
             <div class="header-row">
                 <span class="player-name">HOST (P1)</span>
@@ -369,7 +362,7 @@
             maxCharge: 200, 
             startMoney: 1000,    
             baseHealShield: 25,
-            minBetCost: 25 // Minimální částka pro hru
+            minBetCost: 25 // Minimální sázka
         };
 
         const SYMBOLS = [
@@ -505,17 +498,13 @@
             if (game.locked || game.turn !== pid || pid !== myPlayerId) return;
             const p = game['p'+pid];
             
-            // Kontrola, zda má na sázku
-            if (p.money < CFG.baseCost * mult && p.freeSpins <= 0) {
-                // Nemá peníze, nemůže přepnout, ale nezpůsobí error
-                return;
-            }
-
+            // Nemůže měnit sázku, pokud na ni nemá (vizuálně handled v updateTurnUI, zde pojistka)
+            if (p.money < CFG.baseCost * mult && p.freeSpins <= 0) return;
             if (p.freeSpins > 0) return;
             
             p.bet = mult;
             setBetUI(pid, mult);
-            updateTurnUI(); // Aktualizuje stav tlačítka pro útok
+            updateTurnUI();
         }
 
         function setBetUI(pid, mult) {
@@ -536,26 +525,23 @@
             if (game.locked || pid !== myPlayerId || game.turn !== pid) return;
 
             const p = game['p'+pid];
+            const oid = pid === 1 ? 2 : 1;
             const cost = CFG.baseCost * p.bet;
 
-            // --- VYLEPŠENÁ LOGIKA BANKROTU ---
-            // 1. Zkontroluj, jestli má free spiny. Pokud ano, jede dál.
-            if (p.freeSpins <= 0) {
-                // 2. Pokud nemá na vybranou sázku:
-                if (p.money < cost) {
-                    // 3. Zkontroluj, zda má alespoň na nejmenší sázku (25)
-                    if (p.money < CFG.minBetCost) {
-                         sendGameOver(pid === 1 ? 2 : 1, "BANKROT SOUPEŘE");
-                         return;
-                    } else {
-                        // Má nějaké peníze, ale ne na tuto sázku.
-                        spawnText(pid, "MÁLO KREDITŮ!", "red");
-                        // Tlačítko by mělo být disabled, ale pro jistotu:
-                        return; 
-                    }
-                }
+            // --- KONTROLA BANKROTU PŘED SPINEM ---
+            // Pokud nemá ani na minimální sázku a nemá free spiny, prohrál IHNED.
+            if (p.freeSpins <= 0 && p.money < CFG.minBetCost) {
+                 sendGameOver(oid, "BANKROT - ŽÁDNÉ KREDITY");
+                 return;
             }
 
+            // Pokud nemá na AKTUÁLNÍ sázku, ale má na menší, jen varujeme
+            if (p.freeSpins <= 0 && p.money < cost) {
+                spawnText(pid, "MÁLO KREDITŮ!", "red");
+                return;
+            }
+
+            // Pokud prošel kontrolou, provedeme spin (i když jde o poslední peníze)
             const symbols = [pick(), pick(), pick(), pick()];
 
             sendData({ type: 'SPIN_RESULT', pid: pid, bet: p.bet, symbols: symbols });
@@ -568,13 +554,14 @@
 
         async function executeSpinLogic(pid, symbols) {
             const p = game['p'+pid];
+            const oid = pid === 1 ? 2 : 1;
             const cost = CFG.baseCost * p.bet;
             
             if (p.freeSpins > 0) {
                 p.freeSpins--;
                 spawnText(pid, "FREE SPIN!", "#00ff66");
             } else {
-                p.money -= cost;
+                p.money -= cost; // Odečteme peníze (může jít do 0)
             }
 
             game.actions--;
@@ -599,7 +586,6 @@
                 clearInterval(intervals[i]);
                 reels[i].classList.remove('spinning');
                 reels[i].innerText = symbols[i];
-                
                 reels[i].classList.add('active');
                 setTimeout(() => reels[i].classList.remove('active'), 200);
             }
@@ -636,6 +622,7 @@
                  jokerBonus = true;
             }
 
+            // --- EPIC COMBO LOGIC ---
             if (comboCount >= 3 && !jokerBonus) { 
                 const mainSym = comboSym;
                 
@@ -689,10 +676,19 @@
 
                 await wait(2000); 
                 if (opp.hp <= 0) { checkWinCondition(pid); return; }
+
+                // --- KONTROLA BANKROTU PO KOMBU ---
+                // Pokud po vyhodnocení komba nemám ani 25 kreditů a nemám free spiny, končím.
+                if (p.freeSpins <= 0 && p.money < CFG.minBetCost) {
+                    if (pid === myPlayerId) sendGameOver(oid, "BANKROT - DOŠLY KREDITY");
+                    return;
+                }
+
                 endTurnLogic(pid);
                 return;
             }
 
+            // --- STANDARD SPIN LOGIC ---
             for (let i = 0; i < 4; i++) {
                 const sym = symbols[i];
                 const r = reels[i];
@@ -741,12 +737,15 @@
                 await wait(100);
             }
 
-            // KONTROLA BANKROTU AŽ ZDE (PO SKONČENÍ TAHU)
-            // Pokud po otočení nemám ani 25 a nemám free spiny, prohrál jsem.
-            if (p.money < CFG.minBetCost && p.freeSpins === 0) {
-                if (pid === myPlayerId) sendGameOver(oid, "BANKROT SOUPEŘE");
+            // --- KONTROLA BANKROTU PO BĚŽNÉM SPINU ---
+            // Zde se řeší "Spin za poslední peníze". 
+            // Pokud proběhl spin, peníze se odečetly na začátku, přičetly se výhry.
+            // Pokud je nyní stav < 25 a nemám free spiny, je to konec OKAMŽITĚ.
+            if (p.freeSpins <= 0 && p.money < CFG.minBetCost) {
+                if (pid === myPlayerId) sendGameOver(oid, "BANKROT - DOŠLY KREDITY");
                 return;
             }
+
             endTurnLogic(pid);
         }
 
@@ -814,7 +813,6 @@
             const isMyTurn = (myPlayerId === activePid);
             const p = game['p'+activePid];
 
-            // --- UI ZMĚNY PRO AKTIVNÍHO/NEAKTIVNÍHO HRÁČE ---
             const activePanel = el(`panel-p${activePid}`);
             const inactivePanel = el(`panel-p${inactivePid}`);
 
@@ -823,7 +821,6 @@
 
             inactivePanel.classList.remove('active');
             inactivePanel.classList.add('inactive', 'compact');
-            // ------------------------------------------------
 
             el(`btn-p${activePid}`).disabled = !isMyTurn;
             el(`btn-p${inactivePid}`).disabled = true;
@@ -832,45 +829,35 @@
             const costTxt = el(`cost-p${activePid}`);
             
             if (p.freeSpins > 0) {
-                // Free spins režim
-                p.bet = 4; // Vynutit max bet vizuálně
+                p.bet = 4; 
                 setBetUI(activePid, 4); 
-
                 btn.classList.add('free-spin');
                 btn.innerText = `FREE SPIN (400) x${p.freeSpins}`;
                 if(costTxt) costTxt.style.display = 'none';
 
-                // Všechna tlačítka sázek disabled během free spinů
                 [0.25, 0.5, 1, 2, 4].forEach(m => {
                     const b = el(`bet-p${activePid}-${m}`);
                     if(b) b.disabled = true;
                 });
-                
-                // Tlačítko spinu je aktivní
                 btn.disabled = !isMyTurn;
 
             } else {
-                // Normální režim
                 const currentCost = CFG.baseCost * p.bet;
                 
                 btn.classList.remove('free-spin');
                 if(costTxt) costTxt.style.display = 'inline';
                 btn.innerHTML = `ÚTOK <span id="cost-p${activePid}" style="font-size:0.8em; opacity:0.7">(${Math.round(currentCost)})</span>`;
                 
-                // Logic pro tlačítka sázek a spinu
                 [0.25, 0.5, 1, 2, 4].forEach(m => {
                     const b = el(`bet-p${activePid}-${m}`);
                     const b2 = el(`bet-p${inactivePid}-${m}`);
                     const costForThisBet = CFG.baseCost * m;
 
                     if(b) {
-                        // Tlačítko sázky je aktivní jen pokud je můj tah A mám na to peníze
-                        // NEBO pokud je to aktuálně vybraná sázka (aby zůstala zvýrazněná, i když na ni nemám - vizuální feedback)
-                        // Ale praktičtější je disablovat, pokud na to nemám.
                         if (!isMyTurn) {
                             b.disabled = true;
                         } else if (p.money < costForThisBet) {
-                             b.disabled = true; // Nemám na to peníze -> disabled
+                             b.disabled = true;
                         } else {
                             b.disabled = false;
                         }
@@ -878,7 +865,6 @@
                     if(b2) b2.disabled = true;
                 });
 
-                // Pokud nemám na aktuálně vybranou sázku, Spin tlačítko je disabled
                 if (p.money < currentCost) {
                     btn.disabled = true;
                     btn.innerHTML = `MÁLO KREDITŮ <span style="font-size:0.8em">(${Math.round(currentCost)})</span>`;
