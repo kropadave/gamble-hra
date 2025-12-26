@@ -147,7 +147,7 @@
                 </div>
                 <div class="attr-grid">
                     <div class="attr-box">
-                        <span class="attr-label">NABITO</span>
+                        <span class="attr-label">NABITO (MAX 200)</span>
                         <span class="attr-value charge-glow" id="val-charge-p1">0</span>
                     </div>
                     <div class="attr-box">
@@ -215,7 +215,7 @@
                 </div>
                 <div class="attr-grid">
                     <div class="attr-box">
-                        <span class="attr-label">NABITO</span>
+                        <span class="attr-label">NABITO (MAX 200)</span>
                         <span class="attr-value charge-glow" id="val-charge-p2">0</span>
                     </div>
                     <div class="attr-box">
@@ -286,12 +286,12 @@
             <div class="legend-grid">
                 <div class="legend-row"><span>🃏</span> <strong>JOKER:</strong> Sbírej 3 pro FREE SPIN.<br>3 v řadě = 3 FREE SPINY.</div>
                 <div class="legend-row"><span>⚔️</span> <strong>MEČ:</strong> Základní útok (15 DMG).</div>
-                <div class="legend-row"><span>⚡</span> <strong>NABÍJENÍ:</strong> +5 energie.</div>
-                <div class="legend-row"><span>💥</span> <strong>VÝBUCH:</strong> DMG = 15 + Energie.</div>
-                <div class="legend-row"><span>💰</span> <strong>KREDITY:</strong> Výhra 150 KREDITŮ.</div>
+                <div class="legend-row"><span>⚡</span> <strong>NABÍJENÍ:</strong> +5 energie (Max 200).</div>
+                <div class="legend-row"><span>💥</span> <strong>VÝBUCH:</strong> DMG = 15 + Energie.<br>KOMBO = 150 + Energie!</div>
+                <div class="legend-row"><span>🛡️/❤️</span> <strong>OBRANA:</strong> +25 (při sázce 100).</div>
                 <div class="legend-row"><span>4x</span> <strong>EPIC KOMBO:</strong> Efekt 3x + Extra Tah!</div>
             </div>
-            <p style="text-align:center; color:#666; font-size:0.8rem;">Startovné: 1500. Cena: 25-400.</p>
+            <p style="text-align:center; color:#666; font-size:0.8rem;">Startovné: 1500. Max Štít: 300.</p>
             <button class="action-btn" onclick="toggleModal('rules')" style="margin-top:20px;">ZAVŘÍT</button>
         </div>
     </div>
@@ -312,11 +312,12 @@
             chargeAmt: 5,
             moneyWin: 150,
             maxHp: 500,
-            maxShield: 150,
-            startMoney: 1500
+            maxShield: 300, // ZVÝŠENO NA 300
+            maxCharge: 200, // LIMIT PRO NABITÍ
+            startMoney: 1500,
+            baseHealShield: 25 // ZÁKLAD PRO LÉČENÍ/ŠTÍT (škáluje se s betem)
         };
 
-        // Upravená pravděpodobnost: více "běžných" symbolů pro vyšší šanci na shodu
         const SYMBOLS = [
             '⚔️','⚔️','⚔️','⚔️','⚔️','⚔️','⚔️','⚔️','⚔️','⚔️', 
             '⚡','⚡','⚡','⚡','⚡','⚡','⚡','⚡','⚡','⚡', 
@@ -324,7 +325,7 @@
             '💰','💰','💰','💰',   
             '❤️','❤️','❤️',
             '💥','💥','💥',
-            '🃏','🃏','🃏', // JOKERY
+            '🃏','🃏','🃏', 
             '🦹','🦹'
         ];
 
@@ -511,8 +512,6 @@
             let jokerBonus = false;
             if (match3Any && (match3Start ? s[0] : s[1]) === '🃏') {
                  p.freeSpins += 3;
-                 // Reset joker counter? Rule says "after use jokers reset", but this is a WIN. 
-                 // Let's reset collected jokers because we got a big prize.
                  p.jokers = 0; 
                  spawnText(pid, "+3 FREE SPINS!", "#bd00ff");
                  jokerBonus = true;
@@ -536,19 +535,28 @@
                     reels.forEach(r => { r.classList.remove('epic'); r.style.boxShadow = ''; r.style.transform = ''; });
                 }, 1200);
 
-                // Efekty bonusů
+                // Efekty bonusů - EPIC KOMBA
                 if (mainSym === '💰') {
                     p.money += 1000; spawnText(pid, '+1000 $', '#ffd700');
                 } else if (mainSym === '⚔️') {
                     dealDamage(oid, 150, false);
                 } else if (mainSym === '🛡️') {
+                    // Kombo štítu
                     p.shield = CFG.maxShield; spawnText(pid, 'ŠTÍT MAX', '#4facfe');
                 } else if (mainSym === '❤️') {
                     p.hp = CFG.maxHp; spawnText(pid, 'HP MAX', '#00ff66');
                 } else if (mainSym === '⚡') {
-                    p.charge += 100; spawnText(pid, '+100 ENERGIE', '#ffaa00');
+                    // Kombo nabíjení - pozor na limit
+                    p.charge += 100; 
+                    if(p.charge > CFG.maxCharge) p.charge = CFG.maxCharge;
+                    spawnText(pid, '+100 ENERGIE', '#ffaa00');
                 } else if (mainSym === '💥') {
-                    p.charge *= 3; spawnText(pid, 'ENERGIE x3!', '#ffaa00');
+                    // NOVÁ LOGIKA: 3x VÝBUCH = 150 + CHARGE, PAK RESET
+                    let baseDmg = 150;
+                    let totalDmg = baseDmg + p.charge;
+                    dealDamage(oid, totalDmg, true);
+                    p.charge = 0; // Vybito
+                    spawnText(pid, `MEGA VÝBUCH!`, '#ffaa00');
                 } else if (mainSym === '🦹') {
                     let steal = Math.min(250, opp.money);
                     opp.money -= steal; p.money += steal;
@@ -593,16 +601,20 @@
                 } else if (sym === '⚔️') {
                     dealDamage(oid, CFG.baseDmg * mult, false);
                 } else if (sym === '⚡') {
+                    // Limit nabití
                     p.charge += CFG.chargeAmt * mult;
+                    if (p.charge > CFG.maxCharge) p.charge = CFG.maxCharge;
                     // spawnText(pid, `+${CFG.chargeAmt*mult} E`, "#ffaa00");
                 } else if (sym === '💥') {
                     let total = (p.charge === 0) ? (15 * mult) : (CFG.baseDmg + p.charge) * mult;
                     dealDamage(oid, total, true);
-                    p.charge = 0;
+                    p.charge = 0; // Reset po výbuchu
                 } else if (sym === '🛡️') {
-                    addStat(pid, 'shield', 10 * mult, CFG.maxShield, 'ŠTÍT', '#4facfe');
+                    // Nová logika: 25 * mult
+                    addStat(pid, 'shield', CFG.baseHealShield * mult, CFG.maxShield, 'ŠTÍT', '#4facfe');
                 } else if (sym === '❤️') {
-                    addStat(pid, 'hp', 10 * mult, CFG.maxHp, 'HP', '#00ff66');
+                    // Nová logika: 25 * mult
+                    addStat(pid, 'hp', CFG.baseHealShield * mult, CFG.maxHp, 'HP', '#00ff66');
                 } else if (sym === '💰') {
                     p.money += CFG.moneyWin * mult;
                     spawnText(pid, `+$${CFG.moneyWin*mult}`, "#ffd700");
@@ -761,7 +773,10 @@
                 el(`bar-shield-p${id}`).style.width = Math.min(100, (p.shield/CFG.maxShield)*100) + "%";
                 el(`txt-hp-p${id}`).innerText = Math.max(0, Math.round(p.hp)) + " HP";
                 el(`txt-shield-p${id}`).innerText = Math.round(p.shield);
-                el(`val-charge-p${id}`).innerText = Math.round(p.charge);
+                
+                // Zde vizuálně omezíme, aby to ukazovalo max 200, i kdyby náhodou přeteklo interně
+                el(`val-charge-p${id}`).innerText = Math.min(Math.round(p.charge), CFG.maxCharge);
+                
                 el(`val-money-p${id}`).innerText = Math.round(p.money);
                 el(`val-shield-p${id}`).innerText = Math.round(p.shield);
                 el(`val-jokers-p${id}`).innerText = p.jokers + "/3";
