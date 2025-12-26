@@ -74,12 +74,32 @@
 
         .player-panel.compact .game-content { display: none; }
         
-        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .player-info-col { display: flex; flex-direction: column; gap: 2px; }
-        .player-name { font-family: var(--font-head); font-size: 1.6rem; font-weight: 900; color: var(--theme-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .header-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px; position: relative; }
+        .player-info-col { display: flex; flex-direction: column; gap: 2px; width: 100%; }
+        .player-name { font-family: var(--font-head); font-size: 1.6rem; font-weight: 900; color: var(--theme-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
         .header-money { color: var(--gold); font-family: var(--font-head); font-weight: bold; font-size: 1.1rem; letter-spacing: 1px; }
         
-        .ap-badge { background: #222; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 1.1rem; border: 1px solid #444; white-space: nowrap;}
+        /* UPDATED BADGE POSITIONING */
+        .ap-badge { 
+            background: #222; 
+            padding: 4px 12px; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            font-size: 1.1rem; 
+            border: 1px solid #444; 
+            white-space: nowrap;
+            position: absolute;
+            top: 0;
+            right: 0;
+            transition: 0.3s;
+        }
+
+        /* Badge adjustments for compact view */
+        .player-panel.compact .ap-badge {
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            opacity: 0.7;
+        }
         
         .bars-container { display: flex; flex-direction: column; gap: 8px; background: #111; padding: 10px; border-radius: 8px; border: 1px solid #333; margin-bottom: 0; }
         .player-panel.active .bars-container { margin-bottom: 15px; }
@@ -93,7 +113,7 @@
         .shield-fill { background: linear-gradient(90deg, #1e3c72, #4facfe); }
         .bar-text { position: absolute; right: 5px; top: 0; line-height: 14px; font-size: 0.75rem; font-weight: bold; color: white; text-shadow: 0 1px 2px black; z-index: 2; }
         
-        .attr-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; } /* Changed to 4 cols since money is in header now */
+        .attr-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; } 
         .attr-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 5px; border-radius: 6px; text-align: center; display:flex; flex-direction:column; justify-content:center; }
         .attr-label { font-size: 0.6rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px; }
         .attr-value { font-size: 1.1rem; font-weight: 700; font-family: var(--font-head); }
@@ -171,12 +191,12 @@
 
     <div class="arena">
         <div class="player-panel inactive p1-theme" id="panel-p1">
+            <span class="ap-badge" id="ap-p1">ACTIONS: 3</span>
             <div class="header-row">
                 <div class="player-info-col">
                     <span class="player-name">HOST (P1)</span>
                     <span class="header-money" id="header-money-p1">1500</span>
                 </div>
-                <span class="ap-badge" id="ap-p1">ACTIONS: 3</span>
             </div>
             <div class="bars-container">
                 <div class="bar-row">
@@ -239,12 +259,12 @@
         </div>
 
         <div class="player-panel inactive p2-theme" id="panel-p2">
+            <span class="ap-badge" id="ap-p2">ACTIONS: 3</span>
             <div class="header-row">
                 <div class="player-info-col">
                     <span class="player-name">CLIENT (P2)</span>
                     <span class="header-money" id="header-money-p2">1500</span>
                 </div>
-                <span class="ap-badge" id="ap-p2">ACTIONS: 3</span>
             </div>
             <div class="bars-container">
                 <div class="bar-row">
@@ -655,6 +675,12 @@
                     let steal = Math.min(250, opp.money);
                     opp.money -= steal; p.money += steal;
                     spawnText(pid, `+${steal} $`, '#ff00ff');
+                    
+                    // --- BANKRUPT CHECK AFTER STEAL (EPIC) ---
+                    if (opp.money < CFG.minBetCost && opp.freeSpins <= 0) {
+                         sendGameOver(pid, "OPPONENT BANKRUPT");
+                         return;
+                    }
                 }
 
                 if (comboCount === 4) {
@@ -675,7 +701,7 @@
                 await wait(2000); 
                 if (opp.hp <= 0) { checkWinCondition(pid); return; }
 
-                // --- BANKRUPTCY CHECK POST COMBO ---
+                // --- SELF BANKRUPTCY CHECK POST COMBO (All-in check) ---
                 if (p.freeSpins <= 0 && p.money < CFG.minBetCost) {
                     if (pid === myPlayerId) sendGameOver(oid, "BANKRUPT - OUT OF CREDITS");
                     return;
@@ -705,6 +731,12 @@
                     let steal = Math.min(15 * mult, opp.money);
                     opp.money -= steal; p.money += steal;
                     spawnText(pid, `+${steal} $`, '#ff00ff');
+                    
+                    // --- BANKRUPT CHECK AFTER STEAL (STANDARD) ---
+                    if (opp.money < CFG.minBetCost && opp.freeSpins <= 0) {
+                         sendGameOver(pid, "OPPONENT BANKRUPT");
+                         return;
+                    }
                 } else if (sym === '⚔️') {
                     dealDamage(oid, CFG.baseDmg * mult, false);
                 } else if (sym === '⚡') {
@@ -734,7 +766,8 @@
                 await wait(100);
             }
 
-            // --- BANKRUPTCY CHECK POST STANDARD ---
+            // --- SELF BANKRUPTCY CHECK POST STANDARD (All-in check) ---
+            // This runs after all winnings are collected. If still < 25, Game Over.
             if (p.freeSpins <= 0 && p.money < CFG.minBetCost) {
                 if (pid === myPlayerId) sendGameOver(oid, "BANKRUPT - OUT OF CREDITS");
                 return;
