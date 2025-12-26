@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEON WARFARE: JOKER EDITION (SCATTER UPDATE)</title>
+    <title>NEON WARFARE: JOKER EDITION (PRO UPDATE)</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
@@ -23,22 +23,69 @@
             background-image: radial-gradient(circle at 20% 30%, rgba(0, 242, 234, 0.08) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(255, 0, 85, 0.08) 0%, transparent 40%), linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8));
             color: #e0e0e0; font-family: var(--font-body); height: 100vh; overflow: hidden; display: flex; flex-direction: column;
         }
-        header { display: flex; justify-content: space-between; align-items: center; padding: 10px 40px; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-color); z-index: 100; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 10px 40px; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-color); z-index: 100; flex: 0 0 auto; }
         h1 { font-family: var(--font-head); font-size: 1.4rem; letter-spacing: 3px; color: white; text-transform: uppercase; }
         .accent-text { color: var(--gold); }
         .btn-rules { background: transparent; border: 1px solid #444; color: #888; padding: 6px 15px; border-radius: 4px; font-family: var(--font-head); cursor: pointer; transition: 0.3s; font-size: 0.8rem; }
         .btn-rules:hover { border-color: white; color: white; }
         
-        .arena { flex: 1; display: flex; padding: 20px; gap: 30px; position: relative; align-items: center; justify-content: center; }
-        .player-panel { flex: 1; height: 100%; max-width: 650px; display: flex; flex-direction: column; justify-content: space-between; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; position: relative; transition: all 0.4s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .player-panel.active { border-color: var(--theme-color); box-shadow: 0 0 40px rgba(0,0,0,0.5), inset 0 0 0 1px var(--theme-color); transform: scale(1.01); z-index: 10; }
-        .player-panel.inactive { opacity: 0.4; filter: grayscale(1); transform: scale(0.98); }
+        /* Úprava layoutu pro dynamické schovávání */
+        .arena { flex: 1; display: flex; padding: 20px; gap: 30px; position: relative; align-items: stretch; justify-content: center; overflow: hidden; }
+        
+        .player-panel { 
+            flex: 1; 
+            max-width: 650px; 
+            display: flex; 
+            flex-direction: column; 
+            background: var(--panel-bg); 
+            border: 1px solid var(--border-color); 
+            border-radius: 12px; 
+            padding: 20px; 
+            position: relative; 
+            transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1); /* Plynulá animace změny velikosti */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            min-width: 0; /* Prevents flexbox overflow */
+        }
+
+        /* STYLY PRO KOMPAKTNÍ REŽIM (NEAKTIVNÍ HRÁČ) */
+        .player-panel.compact {
+            flex: 0 0 auto; /* Smrskne se na obsah */
+            width: 280px; /* Fixní šířka pro neaktivního hráče na desktopu */
+            opacity: 0.6;
+            transform: scale(0.95);
+            background: rgba(10, 10, 15, 0.8);
+        }
+        
+        .player-panel.active { 
+            flex: 2; /* Aktivní hráč zabírá více místa */
+            border-color: var(--theme-color); 
+            box-shadow: 0 0 40px rgba(0,0,0,0.5), inset 0 0 0 1px var(--theme-color); 
+            transform: scale(1); 
+            z-index: 10; 
+            opacity: 1;
+        }
+        
+        /* Obal pro obsah, který se má schovat */
+        .game-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            justify-content: space-between;
+            transition: opacity 0.3s;
+        }
+
+        /* Schování obsahu v kompaktním režimu */
+        .player-panel.compact .game-content {
+            display: none;
+        }
         
         .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .player-name { font-family: var(--font-head); font-size: 1.6rem; font-weight: 900; color: var(--theme-color); }
-        .ap-badge { background: #222; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 1.1rem; border: 1px solid #444; }
+        .player-name { font-family: var(--font-head); font-size: 1.6rem; font-weight: 900; color: var(--theme-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ap-badge { background: #222; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 1.1rem; border: 1px solid #444; white-space: nowrap;}
         
-        .bars-container { display: flex; flex-direction: column; gap: 8px; background: #111; padding: 10px; border-radius: 8px; border: 1px solid #333; margin-bottom: 15px; }
+        .bars-container { display: flex; flex-direction: column; gap: 8px; background: #111; padding: 10px; border-radius: 8px; border: 1px solid #333; margin-bottom: 0; /* Margin bottom removed handled by game-content gap */ }
+        .player-panel.active .bars-container { margin-bottom: 15px; } /* Margin added back when active */
+
         .bar-row { position: relative; width: 100%; display: flex; align-items: center; }
         .bar-icon { width: 25px; font-size: 1.2rem; text-align: center; margin-right: 10px; }
         .bar-track { flex: 1; height: 16px; background: #2a2a2a; border-radius: 3px; position: relative; overflow: hidden; border: 1px solid #444; }
@@ -56,30 +103,27 @@
         @keyframes pulseText { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         
         /* Machine & Reels */
-        .machine-container { flex: 1; display: flex; align-items: center; justify-content: center; background: #000; border-radius: 10px; border: 2px solid #333; box-shadow: inset 0 0 40px rgba(0,0,0,0.8); position: relative; margin-bottom: 15px; padding: 10px; }
+        .machine-container { flex: 1; display: flex; align-items: center; justify-content: center; background: #000; border-radius: 10px; border: 2px solid #333; box-shadow: inset 0 0 40px rgba(0,0,0,0.8); position: relative; margin-bottom: 15px; padding: 10px; min-height: 150px; }
         .reel-group { display: flex; gap: 8px; width: 100%; justify-content: center; }
         .reel { flex: 1; max-width: 80px; height: 90px; background: linear-gradient(to bottom, #1a1a1a, #222); border: 1px solid #444; border-radius: 6px; font-size: 2.5rem; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
         .reel.active { border-color: var(--gold); box-shadow: 0 0 15px rgba(255, 204, 0, 0.3); background: #252525; transform: scale(1.05); z-index: 5; }
         .reel.spinning { filter: blur(2px); }
-        
-        /* Styl pro Epic Combo zvýraznění */
         .reel.epic { z-index: 20; }
 
         .control-area { margin-top: auto; }
         .log-display { height: 25px; text-align: center; color: #aaa; font-style: italic; font-size: 0.85rem; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
         
-        /* New Bet Buttons Grid */
         .bet-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 10px; }
         .bet-btn { background: #1a1a1a; border: 1px solid #333; color: #666; padding: 8px 0; font-family: var(--font-head); font-size: 0.6rem; font-weight: bold; cursor: pointer; transition: 0.2s; border-radius: 3px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
         .bet-btn span { display:block; }
-        .bet-btn:hover { background: #222; }
+        .bet-btn:hover:not(:disabled) { background: #222; }
         .bet-btn.active { background: white; color: black; border-color: white; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
-        .bet-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+        .bet-btn:disabled { opacity: 0.2; cursor: not-allowed; background: #000; border-color: #222; }
 
         .action-btn { width: 100%; padding: 15px; border: none; border-radius: 6px; font-family: var(--font-head); font-size: 1.2rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; color: white; position: relative; overflow: hidden; background: #333; transition: 0.2s; }
-        #btn-p1 { background: linear-gradient(135deg, #005c97, var(--p1-main)); } #btn-p1:hover { box-shadow: 0 0 20px rgba(0, 242, 234, 0.4); }
-        #btn-p2 { background: linear-gradient(135deg, #990033, var(--p2-main)); } #btn-p2:hover { box-shadow: 0 0 20px rgba(255, 0, 85, 0.4); }
-        .action-btn:disabled { background: #333; color: #555; cursor: not-allowed; box-shadow: none; }
+        #btn-p1 { background: linear-gradient(135deg, #005c97, var(--p1-main)); } #btn-p1:hover:not(:disabled) { box-shadow: 0 0 20px rgba(0, 242, 234, 0.4); }
+        #btn-p2 { background: linear-gradient(135deg, #990033, var(--p2-main)); } #btn-p2:hover:not(:disabled) { box-shadow: 0 0 20px rgba(255, 0, 85, 0.4); }
+        .action-btn:disabled { background: #222 !important; color: #555 !important; cursor: not-allowed; box-shadow: none !important; }
         .action-btn.free-spin { background: linear-gradient(135deg, #11998e, #38ef7d); color: #000; text-shadow: none; box-shadow: 0 0 20px #38ef7d; }
 
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); backdrop-filter: blur(8px); z-index: 1000; display: none; align-items: center; justify-content: center; }
@@ -105,8 +149,11 @@
         .copy-hint { font-size: 0.8rem; color: #666; display: block; margin-top: -10px; margin-bottom: 20px; }
 
         @media (max-width: 900px) {
-            .arena { flex-direction: column; padding: 10px; gap: 15px; overflow-y: auto; }
-            .player-panel { width: 100%; flex: 0 0 auto; min-height: 520px; padding: 15px; }
+            .arena { flex-direction: column; padding: 10px; gap: 10px; overflow-y: auto; display: block; }
+            /* Na mobilu se panely řadí pod sebe, compact funguje jako accordion */
+            .player-panel { width: 100%; margin-bottom: 10px; min-height: auto; }
+            .player-panel.compact { width: 100%; height: auto; padding-bottom: 10px; opacity: 0.7; }
+            .machine-container { min-height: 120px; }
             h1 { font-size: 1rem; }
             header { padding: 10px 15px; }
             .reel { height: 70px; font-size: 2rem; }
@@ -128,27 +175,28 @@
     <div class="arena">
         
         <div class="player-panel inactive p1-theme" id="panel-p1">
-            <div>
-                <div class="header-row">
-                    <span class="player-name">HOST (P1)</span>
-                    <span class="ap-badge" id="ap-p1">AKCE: 3</span>
-                </div>
-                <div class="bars-container">
-                    <div class="bar-row">
-                        <span class="bar-icon">🛡️</span>
-                        <div class="bar-track">
-                            <div class="bar-fill shield-fill" id="bar-shield-p1" style="width: 0%"></div>
-                            <span class="bar-text" id="txt-shield-p1">0</span>
-                        </div>
-                    </div>
-                    <div class="bar-row">
-                        <span class="bar-icon">❤️</span>
-                        <div class="bar-track">
-                            <div class="bar-fill hp-fill" id="bar-hp-p1" style="width: 100%"></div>
-                            <span class="bar-text" id="txt-hp-p1">500 HP</span>
-                        </div>
+            <div class="header-row">
+                <span class="player-name">HOST (P1)</span>
+                <span class="ap-badge" id="ap-p1">AKCE: 3</span>
+            </div>
+            <div class="bars-container">
+                <div class="bar-row">
+                    <span class="bar-icon">🛡️</span>
+                    <div class="bar-track">
+                        <div class="bar-fill shield-fill" id="bar-shield-p1" style="width: 0%"></div>
+                        <span class="bar-text" id="txt-shield-p1">0</span>
                     </div>
                 </div>
+                <div class="bar-row">
+                    <span class="bar-icon">❤️</span>
+                    <div class="bar-track">
+                        <div class="bar-fill hp-fill" id="bar-hp-p1" style="width: 100%"></div>
+                        <span class="bar-text" id="txt-hp-p1">500 HP</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-content">
                 <div class="attr-grid">
                     <div class="attr-box">
                         <span class="attr-label">NABITO (MAX 200)</span>
@@ -171,52 +219,53 @@
                         <span class="attr-value" style="color:#00ff66" id="val-freespins-p1">0</span>
                     </div>
                 </div>
-            </div>
-            <div class="machine-container">
-                <div class="reel-group">
-                    <div class="reel" id="p1-r1">⚔️</div>
-                    <div class="reel" id="p1-r2">⚡</div>
-                    <div class="reel" id="p1-r3">💥</div>
-                    <div class="reel" id="p1-r4">🃏</div>
+                <div class="machine-container">
+                    <div class="reel-group">
+                        <div class="reel" id="p1-r1">⚔️</div>
+                        <div class="reel" id="p1-r2">⚡</div>
+                        <div class="reel" id="p1-r3">💥</div>
+                        <div class="reel" id="p1-r4">🃏</div>
+                    </div>
                 </div>
-            </div>
-            <div class="control-area">
-                <div class="log-display" id="log-p1">Čekání na hru...</div>
-                <div class="bet-row">
-                    <button class="bet-btn" id="bet-p1-0.25" onclick="setBet(1, 0.25)" disabled><span>S.ECO</span><span style="font-size:0.7em">25</span></button>
-                    <button class="bet-btn" id="bet-p1-0.5" onclick="setBet(1, 0.5)" disabled><span>ECO</span><span style="font-size:0.7em">50</span></button>
-                    <button class="bet-btn active" id="bet-p1-1" onclick="setBet(1, 1)" disabled><span>STD</span><span style="font-size:0.7em">100</span></button>
-                    <button class="bet-btn" id="bet-p1-2" onclick="setBet(1, 2)" disabled><span>MAX</span><span style="font-size:0.7em">200</span></button>
-                    <button class="bet-btn" id="bet-p1-4" onclick="setBet(1, 4)" disabled><span>S.MAX</span><span style="font-size:0.7em">400</span></button>
+                <div class="control-area">
+                    <div class="log-display" id="log-p1">Čekání na hru...</div>
+                    <div class="bet-row">
+                        <button class="bet-btn" id="bet-p1-0.25" onclick="setBet(1, 0.25)" disabled><span>S.ECO</span><span style="font-size:0.7em">25</span></button>
+                        <button class="bet-btn" id="bet-p1-0.5" onclick="setBet(1, 0.5)" disabled><span>ECO</span><span style="font-size:0.7em">50</span></button>
+                        <button class="bet-btn active" id="bet-p1-1" onclick="setBet(1, 1)" disabled><span>STD</span><span style="font-size:0.7em">100</span></button>
+                        <button class="bet-btn" id="bet-p1-2" onclick="setBet(1, 2)" disabled><span>MAX</span><span style="font-size:0.7em">200</span></button>
+                        <button class="bet-btn" id="bet-p1-4" onclick="setBet(1, 4)" disabled><span>S.MAX</span><span style="font-size:0.7em">400</span></button>
+                    </div>
+                    <button class="action-btn" id="btn-p1" onclick="initiateSpin(1)" disabled>
+                        ÚTOK <span id="cost-p1" style="font-size:0.8em; opacity:0.7">(100)</span>
+                    </button>
                 </div>
-                <button class="action-btn" id="btn-p1" onclick="initiateSpin(1)" disabled>
-                    ÚTOK <span id="cost-p1" style="font-size:0.8em; opacity:0.7">(100)</span>
-                </button>
             </div>
         </div>
 
         <div class="player-panel inactive p2-theme" id="panel-p2">
-            <div>
-                <div class="header-row">
-                    <span class="player-name">CLIENT (P2)</span>
-                    <span class="ap-badge" id="ap-p2">AKCE: 3</span>
-                </div>
-                <div class="bars-container">
-                    <div class="bar-row">
-                        <span class="bar-icon">🛡️</span>
-                        <div class="bar-track">
-                            <div class="bar-fill shield-fill" id="bar-shield-p2" style="width: 0%"></div>
-                            <span class="bar-text" id="txt-shield-p2">0</span>
-                        </div>
-                    </div>
-                    <div class="bar-row">
-                        <span class="bar-icon">❤️</span>
-                        <div class="bar-track">
-                            <div class="bar-fill hp-fill" id="bar-hp-p2" style="width: 100%"></div>
-                            <span class="bar-text" id="txt-hp-p2">500 HP</span>
-                        </div>
+            <div class="header-row">
+                <span class="player-name">CLIENT (P2)</span>
+                <span class="ap-badge" id="ap-p2">AKCE: 3</span>
+            </div>
+            <div class="bars-container">
+                <div class="bar-row">
+                    <span class="bar-icon">🛡️</span>
+                    <div class="bar-track">
+                        <div class="bar-fill shield-fill" id="bar-shield-p2" style="width: 0%"></div>
+                        <span class="bar-text" id="txt-shield-p2">0</span>
                     </div>
                 </div>
+                <div class="bar-row">
+                    <span class="bar-icon">❤️</span>
+                    <div class="bar-track">
+                        <div class="bar-fill hp-fill" id="bar-hp-p2" style="width: 100%"></div>
+                        <span class="bar-text" id="txt-hp-p2">500 HP</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-content">
                 <div class="attr-grid">
                     <div class="attr-box">
                         <span class="attr-label">NABITO (MAX 200)</span>
@@ -239,27 +288,27 @@
                         <span class="attr-value" style="color:#00ff66" id="val-freespins-p2">0</span>
                     </div>
                 </div>
-            </div>
-            <div class="machine-container">
-                <div class="reel-group">
-                    <div class="reel" id="p2-r1">⚔️</div>
-                    <div class="reel" id="p2-r2">⚡</div>
-                    <div class="reel" id="p2-r3">💥</div>
-                    <div class="reel" id="p2-r4">🃏</div>
+                <div class="machine-container">
+                    <div class="reel-group">
+                        <div class="reel" id="p2-r1">⚔️</div>
+                        <div class="reel" id="p2-r2">⚡</div>
+                        <div class="reel" id="p2-r3">💥</div>
+                        <div class="reel" id="p2-r4">🃏</div>
+                    </div>
                 </div>
-            </div>
-            <div class="control-area">
-                <div class="log-display" id="log-p2">Čeká na připojení...</div>
-                <div class="bet-row">
-                    <button class="bet-btn" id="bet-p2-0.25" onclick="setBet(2, 0.25)" disabled><span>S.ECO</span><span style="font-size:0.7em">25</span></button>
-                    <button class="bet-btn" id="bet-p2-0.5" onclick="setBet(2, 0.5)" disabled><span>ECO</span><span style="font-size:0.7em">50</span></button>
-                    <button class="bet-btn active" id="bet-p2-1" onclick="setBet(2, 1)" disabled><span>STD</span><span style="font-size:0.7em">100</span></button>
-                    <button class="bet-btn" id="bet-p2-2" onclick="setBet(2, 2)" disabled><span>MAX</span><span style="font-size:0.7em">200</span></button>
-                    <button class="bet-btn" id="bet-p2-4" onclick="setBet(2, 4)" disabled><span>S.MAX</span><span style="font-size:0.7em">400</span></button>
+                <div class="control-area">
+                    <div class="log-display" id="log-p2">Čeká na připojení...</div>
+                    <div class="bet-row">
+                        <button class="bet-btn" id="bet-p2-0.25" onclick="setBet(2, 0.25)" disabled><span>S.ECO</span><span style="font-size:0.7em">25</span></button>
+                        <button class="bet-btn" id="bet-p2-0.5" onclick="setBet(2, 0.5)" disabled><span>ECO</span><span style="font-size:0.7em">50</span></button>
+                        <button class="bet-btn active" id="bet-p2-1" onclick="setBet(2, 1)" disabled><span>STD</span><span style="font-size:0.7em">100</span></button>
+                        <button class="bet-btn" id="bet-p2-2" onclick="setBet(2, 2)" disabled><span>MAX</span><span style="font-size:0.7em">200</span></button>
+                        <button class="bet-btn" id="bet-p2-4" onclick="setBet(2, 4)" disabled><span>S.MAX</span><span style="font-size:0.7em">400</span></button>
+                    </div>
+                    <button class="action-btn" id="btn-p2" onclick="initiateSpin(2)" disabled>
+                        ÚTOK <span id="cost-p2" style="font-size:0.8em; opacity:0.7">(100)</span>
+                    </button>
                 </div>
-                <button class="action-btn" id="btn-p2" onclick="initiateSpin(2)" disabled>
-                    ÚTOK <span id="cost-p2" style="font-size:0.8em; opacity:0.7">(100)</span>
-                </button>
             </div>
         </div>
     </div>
@@ -319,7 +368,8 @@
             maxShield: 300, 
             maxCharge: 200, 
             startMoney: 1000,    
-            baseHealShield: 25 // ZDE JE HODNOTA 25 PRO STD SÁZKU
+            baseHealShield: 25,
+            minBetCost: 25 // Minimální částka pro hru
         };
 
         const SYMBOLS = [
@@ -454,10 +504,18 @@
         function setBet(pid, mult) {
             if (game.locked || game.turn !== pid || pid !== myPlayerId) return;
             const p = game['p'+pid];
+            
+            // Kontrola, zda má na sázku
+            if (p.money < CFG.baseCost * mult && p.freeSpins <= 0) {
+                // Nemá peníze, nemůže přepnout, ale nezpůsobí error
+                return;
+            }
+
             if (p.freeSpins > 0) return;
             
             p.bet = mult;
             setBetUI(pid, mult);
+            updateTurnUI(); // Aktualizuje stav tlačítka pro útok
         }
 
         function setBetUI(pid, mult) {
@@ -480,9 +538,22 @@
             const p = game['p'+pid];
             const cost = CFG.baseCost * p.bet;
 
-            if (p.freeSpins <= 0 && p.money < cost) {
-                sendGameOver(pid === 1 ? 2 : 1, "BANKROT SOUPEŘE");
-                return;
+            // --- VYLEPŠENÁ LOGIKA BANKROTU ---
+            // 1. Zkontroluj, jestli má free spiny. Pokud ano, jede dál.
+            if (p.freeSpins <= 0) {
+                // 2. Pokud nemá na vybranou sázku:
+                if (p.money < cost) {
+                    // 3. Zkontroluj, zda má alespoň na nejmenší sázku (25)
+                    if (p.money < CFG.minBetCost) {
+                         sendGameOver(pid === 1 ? 2 : 1, "BANKROT SOUPEŘE");
+                         return;
+                    } else {
+                        // Má nějaké peníze, ale ne na tuto sázku.
+                        spawnText(pid, "MÁLO KREDITŮ!", "red");
+                        // Tlačítko by mělo být disabled, ale pro jistotu:
+                        return; 
+                    }
+                }
             }
 
             const symbols = [pick(), pick(), pick(), pick()];
@@ -543,14 +614,12 @@
             const opp = game['p' + oid];
             const mult = p.bet;
 
-            // --- DETEKCE KOMBINACÍ (SCATTER - KDEKOLIV NA VÁLCÍCH) ---
             const counts = {};
             symbols.forEach(x => { counts[x] = (counts[x] || 0) + 1; });
 
             let comboSym = null;
             let comboCount = 0;
 
-            // Najdi symbol, který je tam 3x nebo vícekrát
             for (const [sym, c] of Object.entries(counts)) {
                 if (c >= 3) {
                     comboSym = sym;
@@ -559,7 +628,6 @@
                 }
             }
 
-            // JOKER LOGIKA - 3 Kdekoliv
             let jokerBonus = false;
             if (comboSym === '🃏') {
                  p.freeSpins += 3;
@@ -568,11 +636,9 @@
                  jokerBonus = true;
             }
 
-            // EPIC EFEKT (3 nebo 4 stejné)
             if (comboCount >= 3 && !jokerBonus) { 
                 const mainSym = comboSym;
                 
-                // Vizuální efekt pro combo - zvýrazní jen ty válce, kde je symbol
                 reels.forEach((r, i) => {
                     if (symbols[i] === mainSym) {
                         r.classList.add('epic');
@@ -582,17 +648,13 @@
                     }
                 });
                 
-                // Vyhodnocení efektu
                 if (mainSym === '💰') {
                     p.money += 1000; spawnText(pid, '+1000 $', '#ffd700');
                 } else if (mainSym === '⚔️') {
                     dealDamage(oid, 150, false);
                 } else if (mainSym === '🛡️') {
-                    // ZMĚNA: Použití addStat pro převedení přebytku na peníze
-                    // Přidáme 300 štítu (což je max), overflow se převede na money
                     addStat(pid, 'shield', 300, CFG.maxShield, 'ŠTÍT MAX', '#4facfe');
                 } else if (mainSym === '❤️') {
-                    // Stejná logika pro HP (už existovala, ale pro jistotu)
                     addStat(pid, 'hp', 500, CFG.maxHp, 'HP MAX', '#00ff66');
                 } else if (mainSym === '⚡') {
                     p.charge += 100; 
@@ -631,7 +693,6 @@
                 return;
             }
 
-            // --- JEDNOTLIVÉ VÁLCE (BEZ KOMBA) ---
             for (let i = 0; i < 4; i++) {
                 const sym = symbols[i];
                 const r = reels[i];
@@ -663,10 +724,8 @@
                     dealDamage(oid, total, true);
                     p.charge = 0; 
                 } else if (sym === '🛡️') {
-                    // CFG.baseHealShield je 25. Při mult=1 se přičte 25.
                     addStat(pid, 'shield', CFG.baseHealShield * mult, CFG.maxShield, 'ŠTÍT', '#4facfe');
                 } else if (sym === '❤️') {
-                    // CFG.baseHealShield je 25. Při mult=1 se přičte 25.
                     addStat(pid, 'hp', CFG.baseHealShield * mult, CFG.maxHp, 'HP', '#00ff66');
                 } else if (sym === '💰') {
                     p.money += CFG.moneyWin * mult;
@@ -682,8 +741,9 @@
                 await wait(100);
             }
 
-            if (p.money <= 0 && p.freeSpins === 0) {
-                p.money = 0;
+            // KONTROLA BANKROTU AŽ ZDE (PO SKONČENÍ TAHU)
+            // Pokud po otočení nemám ani 25 a nemám free spiny, prohrál jsem.
+            if (p.money < CFG.minBetCost && p.freeSpins === 0) {
                 if (pid === myPlayerId) sendGameOver(oid, "BANKROT SOUPEŘE");
                 return;
             }
@@ -713,26 +773,16 @@
             }
         }
 
-        // --- FUNKCE PRO PŘIČÍTÁNÍ STATŮ A PŘEVOD NA PENÍZE ---
         function addStat(pid, stat, val, max, name, col) {
             const p = game['p'+pid];
-            // Spočítáme overflow: (Aktuální + Nová) - Max
             let overflow = (p[stat] + val) - max;
-            
             if (overflow > 0) {
-                // Pokud přeteče, nastavíme stat na MAX
-                let realGain = max - p[stat]; // Kolik jsme skutečně přidali do statu
+                let realGain = max - p[stat];
                 p[stat] = max;
-                
-                // Přebytek převedeme na peníze
                 p.money += overflow;
-                
-                // Výpis: Pokud jsme něco přidali do statu, vypíšeme to
                 if (realGain > 0) spawnText(pid, `+${Math.round(realGain)} ${name}`, col);
-                // Výpis: Peníze za přebytek
                 spawnText(pid, `+${Math.round(overflow)} $`, "#ffd700");
             } else {
-                // Pokud nepřeteče, prostě přičteme
                 p[stat] += val;
                 spawnText(pid, `+${Math.round(val)} ${name}`, col);
             }
@@ -764,8 +814,16 @@
             const isMyTurn = (myPlayerId === activePid);
             const p = game['p'+activePid];
 
-            el(`panel-p${activePid}`).classList.replace('inactive', 'active');
-            el(`panel-p${inactivePid}`).classList.replace('active', 'inactive');
+            // --- UI ZMĚNY PRO AKTIVNÍHO/NEAKTIVNÍHO HRÁČE ---
+            const activePanel = el(`panel-p${activePid}`);
+            const inactivePanel = el(`panel-p${inactivePid}`);
+
+            activePanel.classList.remove('inactive', 'compact');
+            activePanel.classList.add('active');
+
+            inactivePanel.classList.remove('active');
+            inactivePanel.classList.add('inactive', 'compact');
+            // ------------------------------------------------
 
             el(`btn-p${activePid}`).disabled = !isMyTurn;
             el(`btn-p${inactivePid}`).disabled = true;
@@ -774,28 +832,61 @@
             const costTxt = el(`cost-p${activePid}`);
             
             if (p.freeSpins > 0) {
-                p.bet = 4;
+                // Free spins režim
+                p.bet = 4; // Vynutit max bet vizuálně
                 setBetUI(activePid, 4); 
 
                 btn.classList.add('free-spin');
                 btn.innerText = `FREE SPIN (400) x${p.freeSpins}`;
                 if(costTxt) costTxt.style.display = 'none';
 
+                // Všechna tlačítka sázek disabled během free spinů
                 [0.25, 0.5, 1, 2, 4].forEach(m => {
                     const b = el(`bet-p${activePid}-${m}`);
                     if(b) b.disabled = true;
                 });
+                
+                // Tlačítko spinu je aktivní
+                btn.disabled = !isMyTurn;
+
             } else {
+                // Normální režim
+                const currentCost = CFG.baseCost * p.bet;
+                
                 btn.classList.remove('free-spin');
                 if(costTxt) costTxt.style.display = 'inline';
-                btn.innerHTML = `ÚTOK <span id="cost-p${activePid}" style="font-size:0.8em; opacity:0.7">(${Math.round(CFG.baseCost * p.bet)})</span>`;
+                btn.innerHTML = `ÚTOK <span id="cost-p${activePid}" style="font-size:0.8em; opacity:0.7">(${Math.round(currentCost)})</span>`;
                 
+                // Logic pro tlačítka sázek a spinu
                 [0.25, 0.5, 1, 2, 4].forEach(m => {
                     const b = el(`bet-p${activePid}-${m}`);
                     const b2 = el(`bet-p${inactivePid}-${m}`);
-                    if(b) b.disabled = !isMyTurn;
+                    const costForThisBet = CFG.baseCost * m;
+
+                    if(b) {
+                        // Tlačítko sázky je aktivní jen pokud je můj tah A mám na to peníze
+                        // NEBO pokud je to aktuálně vybraná sázka (aby zůstala zvýrazněná, i když na ni nemám - vizuální feedback)
+                        // Ale praktičtější je disablovat, pokud na to nemám.
+                        if (!isMyTurn) {
+                            b.disabled = true;
+                        } else if (p.money < costForThisBet) {
+                             b.disabled = true; // Nemám na to peníze -> disabled
+                        } else {
+                            b.disabled = false;
+                        }
+                    }
                     if(b2) b2.disabled = true;
                 });
+
+                // Pokud nemám na aktuálně vybranou sázku, Spin tlačítko je disabled
+                if (p.money < currentCost) {
+                    btn.disabled = true;
+                    btn.innerHTML = `MÁLO KREDITŮ <span style="font-size:0.8em">(${Math.round(currentCost)})</span>`;
+                    btn.style.opacity = "0.5";
+                } else {
+                    btn.style.opacity = "1";
+                    btn.disabled = !isMyTurn;
+                }
             }
 
             if (isMyTurn) {
