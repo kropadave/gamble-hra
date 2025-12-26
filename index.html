@@ -313,7 +313,7 @@
             maxHp: 500,
             maxShield: 300,
             startMoney: 1000, // ZMENA: Start budget 1000
-            maxCharge: 150    // ZMENA: Kapacita 300
+            maxCharge: 200    // ZMENA: Kapacita 300
         };
 
         // Upravená pravděpodobnost: méně peněz
@@ -632,6 +632,29 @@
                     let total = (p.charge === 0) ? (15 * mult) : (CFG.baseDmg + p.charge) * mult;
                     dealDamage(oid, total, true);
                     p.charge = 0;
+                if (sym === '🃏') {
+                    p.jokers++;
+                    spawnText(pid, "JOKER!", "#bd00ff");
+                    if (p.jokers >= 3) {
+                        p.jokers = 0;
+                        p.freeSpins++;
+                        spawnText(pid, "+1 FREE SPIN", "#00ff66");
+                    }
+                }
+                // Ostatní symboly
+                else if (sym === '🦹') {
+                    let steal = Math.min(15 * mult, opp.money);
+                    opp.money -= steal; p.money += steal;
+                    spawnText(pid, `+${steal} $`, '#ff00ff');
+                } else if (sym === '⚔️') {
+                    dealDamage(oid, CFG.baseDmg * mult, false);
+                } else if (sym === '⚡') {
+                    p.charge += CFG.chargeAmt * mult;
+                    // spawnText(pid, `+${CFG.chargeAmt*mult} E`, "#ffaa00");
+                } else if (sym === '💥') {
+                    let total = (p.charge === 0) ? (15 * mult) : (CFG.baseDmg + p.charge) * mult;
+                    dealDamage(oid, total, true);
+                    p.charge = 0;
                 } else if (sym === '🛡️') {
                     addStat(pid, 'shield', 25 * mult, CFG.maxShield, 'ŠTÍT', '#4facfe');
                 } else if (sym === '❤️') {
@@ -640,29 +663,6 @@
                     p.money += CFG.moneyWin * mult;
                     spawnText(pid, `+$${CFG.moneyWin*mult}`, "#ffd700");
                 }
-
-                updateUI();
-                if (opp.hp <= 0) { checkWinCondition(pid); return; }
-                if (p.money <= 0 && p.freeSpins === 0) p.money = 0; 
-
-                r.classList.remove('active');
-            }
-
-            if (p.money <= 0 && p.freeSpins === 0) {
-                if (pid === myPlayerId) sendGameOver(oid, "BANKROT SOUPEŘE");
-                return;
-            }
-            endTurnLogic(pid);
-        }
-
-        function dealDamage(targetId, amt, isExplosion) {
-            const t = game['p'+targetId];
-            let rest = Math.round(amt);
-            if (t.shield > 0) {
-                if (t.shield >= rest) {
-                    t.shield -= rest;
-                    spawnText(targetId, `-${rest} ŠTÍT`, "#4facfe");
-                    rest = 0;
                 } else {
                     rest -= t.shield;
                     t.shield = 0;
@@ -813,4 +813,3 @@
     </script>
 </body>
 </html>
-
