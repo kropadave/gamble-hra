@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEON WARFARE: JOKER EDITION (FIXED)</title>
+    <title>NEON WARFARE: JOKER EDITION</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        /* --- GRAFIKA (BEZE ZMĚN) --- */
+        /* --- GRAPHICS (UNCHANGED) --- */
         :root {
             --bg-dark: #08080a;
             --panel-bg: rgba(20, 20, 25, 0.7);
@@ -29,7 +29,7 @@
         .btn-rules { background: transparent; border: 1px solid #444; color: #888; padding: 6px 15px; border-radius: 4px; font-family: var(--font-head); cursor: pointer; transition: 0.3s; font-size: 0.8rem; }
         .btn-rules:hover { border-color: white; color: white; }
         
-        /* Úprava layoutu pro dynamické schovávání */
+        /* Layout adjustments */
         .arena { flex: 1; display: flex; padding: 20px; gap: 30px; position: relative; align-items: stretch; justify-content: center; overflow: hidden; }
         
         .player-panel { 
@@ -75,7 +75,10 @@
         .player-panel.compact .game-content { display: none; }
         
         .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .player-info-col { display: flex; flex-direction: column; gap: 2px; }
         .player-name { font-family: var(--font-head); font-size: 1.6rem; font-weight: 900; color: var(--theme-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .header-money { color: var(--gold); font-family: var(--font-head); font-weight: bold; font-size: 1.1rem; letter-spacing: 1px; }
+        
         .ap-badge { background: #222; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 1.1rem; border: 1px solid #444; white-space: nowrap;}
         
         .bars-container { display: flex; flex-direction: column; gap: 8px; background: #111; padding: 10px; border-radius: 8px; border: 1px solid #333; margin-bottom: 0; }
@@ -90,7 +93,7 @@
         .shield-fill { background: linear-gradient(90deg, #1e3c72, #4facfe); }
         .bar-text { position: absolute; right: 5px; top: 0; line-height: 14px; font-size: 0.75rem; font-weight: bold; color: white; text-shadow: 0 1px 2px black; z-index: 2; }
         
-        .attr-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 15px; }
+        .attr-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; } /* Changed to 4 cols since money is in header now */
         .attr-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 5px; border-radius: 6px; text-align: center; display:flex; flex-direction:column; justify-content:center; }
         .attr-label { font-size: 0.6rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px; }
         .attr-value { font-size: 1.1rem; font-weight: 700; font-family: var(--font-head); }
@@ -137,7 +140,7 @@
         .shake { animation: shakeAnim 0.4s; }
         @keyframes shakeAnim { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 
-        /* --- LOBBY & RESPONZIVITA --- */
+        /* --- LOBBY & RESPONSIVE --- */
         #lobby-ui { display: flex; flex-direction: column; gap: 20px; }
         .lobby-input { background: #222; border: 1px solid #444; padding: 15px; color: white; width: 100%; font-family: var(--font-head); text-align: center; font-size: 1.2rem; margin-bottom: 15px; letter-spacing: 2px; text-transform: uppercase; }
         .lobby-code { font-size: 2.5rem; color: var(--gold); letter-spacing: 5px; margin: 20px 0; font-family: var(--font-head); border: 2px dashed #444; padding: 20px; user-select: text; cursor: pointer; }
@@ -151,7 +154,7 @@
             h1 { font-size: 1rem; }
             header { padding: 10px 15px; }
             .reel { height: 70px; font-size: 2rem; }
-            .attr-grid { grid-template-columns: repeat(5, 1fr); }
+            .attr-grid { grid-template-columns: repeat(4, 1fr); }
             .attr-label { font-size: 0.5rem; }
             .attr-value { font-size: 0.9rem; }
             .action-btn { padding: 12px; }
@@ -163,21 +166,24 @@
 
     <header>
         <h1>NEON WARFARE <span class="accent-text">JOKER</span></h1>
-        <button class="btn-rules" onclick="toggleModal('rules')">PRAVIDLA</button>
+        <button class="btn-rules" onclick="toggleModal('rules')">RULES</button>
     </header>
 
     <div class="arena">
         <div class="player-panel inactive p1-theme" id="panel-p1">
             <div class="header-row">
-                <span class="player-name">HOST (P1)</span>
-                <span class="ap-badge" id="ap-p1">AKCE: 3</span>
+                <div class="player-info-col">
+                    <span class="player-name">HOST (P1)</span>
+                    <span class="header-money" id="header-money-p1">1500</span>
+                </div>
+                <span class="ap-badge" id="ap-p1">ACTIONS: 3</span>
             </div>
             <div class="bars-container">
                 <div class="bar-row">
                     <span class="bar-icon">🛡️</span>
                     <div class="bar-track">
-                        <div class="bar-fill shield-fill" id="bar-shield-p1" style="width: 0%"></div>
-                        <span class="bar-text" id="txt-shield-p1">0</span>
+                        <div class="bar-fill shield-fill" id="bar-shield-p1" style="width: 100%"></div>
+                        <span class="bar-text" id="txt-shield-p1">300</span>
                     </div>
                 </div>
                 <div class="bar-row">
@@ -192,16 +198,12 @@
             <div class="game-content">
                 <div class="attr-grid">
                     <div class="attr-box">
-                        <span class="attr-label">NABITO (MAX 200)</span>
+                        <span class="attr-label">CHARGE (MAX 200)</span>
                         <span class="attr-value charge-glow" id="val-charge-p1">0</span>
                     </div>
                     <div class="attr-box">
-                        <span class="attr-label">KREDITY</span>
-                        <span class="attr-value" style="color:var(--gold)" id="val-money-p1">1500</span>
-                    </div>
-                    <div class="attr-box">
-                        <span class="attr-label">ŠTÍTY</span>
-                        <span class="attr-value" style="color:var(--shield)" id="val-shield-p1">0</span>
+                        <span class="attr-label">SHIELDS</span>
+                        <span class="attr-value" style="color:var(--shield)" id="val-shield-p1">300</span>
                     </div>
                      <div class="attr-box" style="border-color:var(--joker)">
                         <span class="attr-label" style="color:var(--joker)">JOKERS</span>
@@ -221,7 +223,7 @@
                     </div>
                 </div>
                 <div class="control-area">
-                    <div class="log-display" id="log-p1">Čekání na hru...</div>
+                    <div class="log-display" id="log-p1">Waiting for game...</div>
                     <div class="bet-row">
                         <button class="bet-btn" id="bet-p1-0.25" onclick="setBet(1, 0.25)" disabled><span>S.ECO</span><span style="font-size:0.7em">25</span></button>
                         <button class="bet-btn" id="bet-p1-0.5" onclick="setBet(1, 0.5)" disabled><span>ECO</span><span style="font-size:0.7em">50</span></button>
@@ -230,7 +232,7 @@
                         <button class="bet-btn" id="bet-p1-4" onclick="setBet(1, 4)" disabled><span>S.MAX</span><span style="font-size:0.7em">400</span></button>
                     </div>
                     <button class="action-btn" id="btn-p1" onclick="initiateSpin(1)" disabled>
-                        ÚTOK <span id="cost-p1" style="font-size:0.8em; opacity:0.7">(100)</span>
+                        ATTACK <span id="cost-p1" style="font-size:0.8em; opacity:0.7">(100)</span>
                     </button>
                 </div>
             </div>
@@ -238,15 +240,18 @@
 
         <div class="player-panel inactive p2-theme" id="panel-p2">
             <div class="header-row">
-                <span class="player-name">CLIENT (P2)</span>
-                <span class="ap-badge" id="ap-p2">AKCE: 3</span>
+                <div class="player-info-col">
+                    <span class="player-name">CLIENT (P2)</span>
+                    <span class="header-money" id="header-money-p2">1500</span>
+                </div>
+                <span class="ap-badge" id="ap-p2">ACTIONS: 3</span>
             </div>
             <div class="bars-container">
                 <div class="bar-row">
                     <span class="bar-icon">🛡️</span>
                     <div class="bar-track">
-                        <div class="bar-fill shield-fill" id="bar-shield-p2" style="width: 0%"></div>
-                        <span class="bar-text" id="txt-shield-p2">0</span>
+                        <div class="bar-fill shield-fill" id="bar-shield-p2" style="width: 100%"></div>
+                        <span class="bar-text" id="txt-shield-p2">300</span>
                     </div>
                 </div>
                 <div class="bar-row">
@@ -261,16 +266,12 @@
             <div class="game-content">
                 <div class="attr-grid">
                     <div class="attr-box">
-                        <span class="attr-label">NABITO (MAX 200)</span>
+                        <span class="attr-label">CHARGE (MAX 200)</span>
                         <span class="attr-value charge-glow" id="val-charge-p2">0</span>
                     </div>
                     <div class="attr-box">
-                        <span class="attr-label">KREDITY</span>
-                        <span class="attr-value" style="color:var(--gold)" id="val-money-p2">1500</span>
-                    </div>
-                    <div class="attr-box">
-                        <span class="attr-label">ŠTÍTY</span>
-                        <span class="attr-value" style="color:var(--shield)" id="val-shield-p2">0</span>
+                        <span class="attr-label">SHIELDS</span>
+                        <span class="attr-value" style="color:var(--shield)" id="val-shield-p2">300</span>
                     </div>
                     <div class="attr-box" style="border-color:var(--joker)">
                         <span class="attr-label" style="color:var(--joker)">JOKERS</span>
@@ -290,7 +291,7 @@
                     </div>
                 </div>
                 <div class="control-area">
-                    <div class="log-display" id="log-p2">Čeká na připojení...</div>
+                    <div class="log-display" id="log-p2">Waiting for connection...</div>
                     <div class="bet-row">
                         <button class="bet-btn" id="bet-p2-0.25" onclick="setBet(2, 0.25)" disabled><span>S.ECO</span><span style="font-size:0.7em">25</span></button>
                         <button class="bet-btn" id="bet-p2-0.5" onclick="setBet(2, 0.5)" disabled><span>ECO</span><span style="font-size:0.7em">50</span></button>
@@ -299,7 +300,7 @@
                         <button class="bet-btn" id="bet-p2-4" onclick="setBet(2, 4)" disabled><span>S.MAX</span><span style="font-size:0.7em">400</span></button>
                     </div>
                     <button class="action-btn" id="btn-p2" onclick="initiateSpin(2)" disabled>
-                        ÚTOK <span id="cost-p2" style="font-size:0.8em; opacity:0.7">(100)</span>
+                        ATTACK <span id="cost-p2" style="font-size:0.8em; opacity:0.7">(100)</span>
                     </button>
                 </div>
             </div>
@@ -310,48 +311,48 @@
         <div class="modal-box">
             <h2 style="color:var(--gold); margin-bottom:10px;">ONLINE LOBBY</h2>
             <div id="lobby-start">
-                <button class="action-btn" onclick="createGame()" style="margin-bottom:15px;">ZALOŽIT HRU</button>
-                <div style="margin: 15px 0; color:#555;">- NEBO -</div>
-                <input type="text" id="join-code" class="lobby-input" placeholder="VLOŽ KÓD MÍSTNOSTI">
-                <button class="action-btn" onclick="joinGame()" id="btn-join">PŘIPOJIT SE</button>
+                <button class="action-btn" onclick="createGame()" style="margin-bottom:15px;">CREATE GAME</button>
+                <div style="margin: 15px 0; color:#555;">- OR -</div>
+                <input type="text" id="join-code" class="lobby-input" placeholder="ENTER ROOM CODE">
+                <button class="action-btn" onclick="joinGame()" id="btn-join">JOIN</button>
             </div>
             
             <div id="lobby-host" style="display:none;">
-                <p>POŠLI TENTO KÓD SOUPEŘI:</p>
+                <p>SEND CODE TO OPPONENT:</p>
                 <div class="lobby-code" id="host-id-display" onclick="copyCode()">...</div>
-                <span class="copy-hint">(Klikni pro zkopírování)</span>
-                <p class="log-display">Čekám na soupeře...</p>
-                <button class="btn-rules" onclick="location.reload()" style="margin-top:20px;">ZRUŠIT</button>
+                <span class="copy-hint">(Click to copy)</span>
+                <p class="log-display">Waiting for opponent...</p>
+                <button class="btn-rules" onclick="location.reload()" style="margin-top:20px;">CANCEL</button>
             </div>
         </div>
     </div>
 
     <div class="overlay" id="modal-rules">
         <div class="modal-box" style="text-align:left;">
-            <h2 style="color:var(--gold); text-align:center; margin-bottom:20px; font-family:var(--font-head)">PRAVIDLA</h2>
+            <h2 style="color:var(--gold); text-align:center; margin-bottom:20px; font-family:var(--font-head)">RULES</h2>
             <div class="legend-grid">
-                <div class="legend-row"><span>🃏</span> <strong>JOKER:</strong> Sbírej 3 pro FREE SPIN.<br>3 kdekoliv = 3 FREE SPINY.</div>
-                <div class="legend-row"><span>⚔️</span> <strong>MEČ:</strong> Základní útok (15 DMG).</div>
-                <div class="legend-row"><span>⚡</span> <strong>NABÍJENÍ:</strong> +5 energie (Max 200).</div>
-                <div class="legend-row"><span>💥</span> <strong>VÝBUCH:</strong> DMG = 15 + Energie.<br>KOMBO = 150 + Energie!</div>
-                <div class="legend-row"><span>🛡️/❤️</span> <strong>OBRANA:</strong> +25 (při sázce 100).</div>
-                <div class="legend-row"><span>3x</span> <strong>EPIC KOMBO:</strong> 3 stejné symboly KDEKOLIV!</div>
+                <div class="legend-row"><span>🃏</span> <strong>JOKER:</strong> Collect 3 for FREE SPIN.<br>3 anywhere = 3 FREE SPINS.</div>
+                <div class="legend-row"><span>⚔️</span> <strong>SWORD:</strong> Basic Attack (15 DMG).</div>
+                <div class="legend-row"><span>⚡</span> <strong>CHARGE:</strong> +5 Energy (Max 200).</div>
+                <div class="legend-row"><span>💥</span> <strong>BLAST:</strong> DMG = 15 + Energy.<br>COMBO = 150 + Energy!</div>
+                <div class="legend-row"><span>🛡️/❤️</span> <strong>DEFENSE:</strong> +25 (at bet 100).</div>
+                <div class="legend-row"><span>3x</span> <strong>EPIC COMBO:</strong> 3 same symbols ANYWHERE!</div>
             </div>
-            <p style="text-align:center; color:#666; font-size:0.8rem;">Startovné: 1500. Max Štít: 300.</p>
-            <button class="action-btn" onclick="toggleModal('rules')" style="margin-top:20px;">ZAVŘÍT</button>
+            <p style="text-align:center; color:#666; font-size:0.8rem;">Start Credits: 1500. Max Shield: 300.</p>
+            <button class="action-btn" onclick="toggleModal('rules')" style="margin-top:20px;">CLOSE</button>
         </div>
     </div>
 
     <div class="overlay" id="modal-gameover">
         <div class="modal-box">
             <h1 class="winner-text" id="go-winner">WINNER</h1>
-            <div class="reason-text" id="go-reason">DŮVOD KONCE</div>
-            <button class="action-btn" onclick="location.reload()">NOVÁ BITVA</button>
+            <div class="reason-text" id="go-reason">GAME OVER REASON</div>
+            <button class="action-btn" onclick="location.reload()">NEW BATTLE</button>
         </div>
     </div>
 
     <script>
-        // --- KONFIGURACE HRY ---
+        // --- GAME CONFIG ---
         const CFG = {
             baseCost: 100, 
             baseDmg: 15,
@@ -362,7 +363,7 @@
             maxCharge: 200, 
             startMoney: 1000,    
             baseHealShield: 25,
-            minBetCost: 25 // Minimální sázka
+            minBetCost: 25 // Min bet
         };
 
         const SYMBOLS = [
@@ -378,8 +379,9 @@
 
         let game = {
             turn: 1, actions: 3, locked: true,
-            p1: { hp: 500, shield: 0, charge: 0, money: CFG.startMoney, bet: 1, jokers: 0, freeSpins: 0 },
-            p2: { hp: 500, shield: 0, charge: 0, money: CFG.startMoney, bet: 1, jokers: 0, freeSpins: 0 }
+            // START WITH FULL SHIELD (300)
+            p1: { hp: 500, shield: CFG.maxShield, charge: 0, money: CFG.startMoney, bet: 1, jokers: 0, freeSpins: 0 },
+            p2: { hp: 500, shield: CFG.maxShield, charge: 0, money: CFG.startMoney, bet: 1, jokers: 0, freeSpins: 0 }
         };
 
         // --- MULTIPLAYER LOGIC ---
@@ -414,7 +416,7 @@
                     peer.destroy();
                     createGame();
                 } else {
-                    alert("Chyba sítě: " + err);
+                    alert("Network Error: " + err);
                     location.reload();
                 }
             });
@@ -433,7 +435,7 @@
         function joinGame() {
             const code = el('join-code').value.trim().toUpperCase();
             if (!code) return;
-            el('btn-join').innerText = "PŘIPOJOVÁNÍ...";
+            el('btn-join').innerText = "JOINING...";
             el('btn-join').disabled = true;
             peer = new Peer();
             peer.on('open', (id) => {
@@ -442,7 +444,7 @@
                 setupConnection();
             });
             peer.on('error', (err) => {
-                alert("Místnost nenalezena nebo chyba: " + err);
+                alert("Room not found or error: " + err);
                 location.reload();
             });
         }
@@ -450,7 +452,7 @@
         function setupConnection() {
             conn.on('open', () => { console.log("Connected!"); });
             conn.on('data', (data) => { handleNetworkData(data); });
-            conn.on('close', () => { alert("Soupeř se odpojil."); location.reload(); });
+            conn.on('close', () => { alert("Opponent disconnected."); location.reload(); });
         }
 
         function handleNetworkData(data) {
@@ -470,7 +472,7 @@
         }
 
         function copyCode() {
-            navigator.clipboard.writeText(el('host-id-display').innerText).then(() => alert("Kód zkopírován!"));
+            navigator.clipboard.writeText(el('host-id-display').innerText).then(() => alert("Code copied!"));
         }
 
         function startGame(startPid) {
@@ -480,11 +482,11 @@
             game.locked = false;
             
             if (myPlayerId === 1) {
-                el('panel-p1').querySelector('.player-name').innerText = "TY (HOST)";
-                el('panel-p2').querySelector('.player-name').innerText = "SOUPEŘ";
+                el('panel-p1').querySelector('.player-name').innerText = "YOU (HOST)";
+                el('panel-p2').querySelector('.player-name').innerText = "OPPONENT";
             } else {
-                el('panel-p2').querySelector('.player-name').innerText = "TY (KLIENT)";
-                el('panel-p1').querySelector('.player-name').innerText = "SOUPEŘ";
+                el('panel-p2').querySelector('.player-name').innerText = "YOU (CLIENT)";
+                el('panel-p1').querySelector('.player-name').innerText = "OPPONENT";
             }
             updateTurnUI();
             updateUI();
@@ -498,7 +500,6 @@
             if (game.locked || game.turn !== pid || pid !== myPlayerId) return;
             const p = game['p'+pid];
             
-            // Nemůže měnit sázku, pokud na ni nemá (vizuálně handled v updateTurnUI, zde pojistka)
             if (p.money < CFG.baseCost * mult && p.freeSpins <= 0) return;
             if (p.freeSpins > 0) return;
             
@@ -528,20 +529,17 @@
             const oid = pid === 1 ? 2 : 1;
             const cost = CFG.baseCost * p.bet;
 
-            // --- KONTROLA BANKROTU PŘED SPINEM ---
-            // Pokud nemá ani na minimální sázku a nemá free spiny, prohrál IHNED.
+            // --- BANKRUPTCY CHECK BEFORE SPIN ---
             if (p.freeSpins <= 0 && p.money < CFG.minBetCost) {
-                 sendGameOver(oid, "BANKROT - ŽÁDNÉ KREDITY");
+                 sendGameOver(oid, "BANKRUPT - NO CREDITS");
                  return;
             }
 
-            // Pokud nemá na AKTUÁLNÍ sázku, ale má na menší, jen varujeme
             if (p.freeSpins <= 0 && p.money < cost) {
-                spawnText(pid, "MÁLO KREDITŮ!", "red");
+                spawnText(pid, "LOW CREDITS!", "red");
                 return;
             }
 
-            // Pokud prošel kontrolou, provedeme spin (i když jde o poslední peníze)
             const symbols = [pick(), pick(), pick(), pick()];
 
             sendData({ type: 'SPIN_RESULT', pid: pid, bet: p.bet, symbols: symbols });
@@ -561,7 +559,7 @@
                 p.freeSpins--;
                 spawnText(pid, "FREE SPIN!", "#00ff66");
             } else {
-                p.money -= cost; // Odečteme peníze (může jít do 0)
+                p.money -= cost;
             }
 
             game.actions--;
@@ -570,7 +568,7 @@
             
             el(`btn-p1`).disabled = true;
             el(`btn-p2`).disabled = true;
-            el(`log-p${pid}`).innerText = "Roztáčím válce...";
+            el(`log-p${pid}`).innerText = "Spinning...";
 
             const reels = [1,2,3,4].map(i => el(`p${pid}-r${i}`));
             
@@ -640,19 +638,19 @@
                 } else if (mainSym === '⚔️') {
                     dealDamage(oid, 150, false);
                 } else if (mainSym === '🛡️') {
-                    addStat(pid, 'shield', 300, CFG.maxShield, 'ŠTÍT MAX', '#4facfe');
+                    addStat(pid, 'shield', 300, CFG.maxShield, 'SHIELD MAX', '#4facfe');
                 } else if (mainSym === '❤️') {
                     addStat(pid, 'hp', 500, CFG.maxHp, 'HP MAX', '#00ff66');
                 } else if (mainSym === '⚡') {
                     p.charge += 100; 
                     if(p.charge > CFG.maxCharge) p.charge = CFG.maxCharge;
-                    spawnText(pid, '+100 ENERGIE', '#ffaa00');
+                    spawnText(pid, '+100 ENERGY', '#ffaa00');
                 } else if (mainSym === '💥') {
                     let baseDmg = 150;
                     let totalDmg = baseDmg + p.charge;
                     dealDamage(oid, totalDmg, true);
                     p.charge = 0; 
-                    spawnText(pid, `MEGA VÝBUCH!`, '#ffaa00');
+                    spawnText(pid, `MEGA BLAST!`, '#ffaa00');
                 } else if (mainSym === '🦹') {
                     let steal = Math.min(250, opp.money);
                     opp.money -= steal; p.money += steal;
@@ -677,10 +675,9 @@
                 await wait(2000); 
                 if (opp.hp <= 0) { checkWinCondition(pid); return; }
 
-                // --- KONTROLA BANKROTU PO KOMBU ---
-                // Pokud po vyhodnocení komba nemám ani 25 kreditů a nemám free spiny, končím.
+                // --- BANKRUPTCY CHECK POST COMBO ---
                 if (p.freeSpins <= 0 && p.money < CFG.minBetCost) {
-                    if (pid === myPlayerId) sendGameOver(oid, "BANKROT - DOŠLY KREDITY");
+                    if (pid === myPlayerId) sendGameOver(oid, "BANKRUPT - OUT OF CREDITS");
                     return;
                 }
 
@@ -714,13 +711,13 @@
                     let gain = CFG.chargeAmt * mult;
                     p.charge += gain;
                     if (p.charge > CFG.maxCharge) p.charge = CFG.maxCharge;
-                    spawnText(pid, `+${gain} ENERGIE`, '#ffaa00');
+                    spawnText(pid, `+${gain} ENERGY`, '#ffaa00');
                 } else if (sym === '💥') {
                     let total = (p.charge === 0) ? (15 * mult) : (CFG.baseDmg + p.charge) * mult;
                     dealDamage(oid, total, true);
                     p.charge = 0; 
                 } else if (sym === '🛡️') {
-                    addStat(pid, 'shield', CFG.baseHealShield * mult, CFG.maxShield, 'ŠTÍT', '#4facfe');
+                    addStat(pid, 'shield', CFG.baseHealShield * mult, CFG.maxShield, 'SHIELD', '#4facfe');
                 } else if (sym === '❤️') {
                     addStat(pid, 'hp', CFG.baseHealShield * mult, CFG.maxHp, 'HP', '#00ff66');
                 } else if (sym === '💰') {
@@ -737,12 +734,9 @@
                 await wait(100);
             }
 
-            // --- KONTROLA BANKROTU PO BĚŽNÉM SPINU ---
-            // Zde se řeší "Spin za poslední peníze". 
-            // Pokud proběhl spin, peníze se odečetly na začátku, přičetly se výhry.
-            // Pokud je nyní stav < 25 a nemám free spiny, je to konec OKAMŽITĚ.
+            // --- BANKRUPTCY CHECK POST STANDARD ---
             if (p.freeSpins <= 0 && p.money < CFG.minBetCost) {
-                if (pid === myPlayerId) sendGameOver(oid, "BANKROT - DOŠLY KREDITY");
+                if (pid === myPlayerId) sendGameOver(oid, "BANKRUPT - OUT OF CREDITS");
                 return;
             }
 
@@ -755,12 +749,12 @@
             if (t.shield > 0) {
                 if (t.shield >= rest) {
                     t.shield -= rest;
-                    spawnText(targetId, `-${rest} ŠTÍT`, "#4facfe");
+                    spawnText(targetId, `-${rest} SHIELD`, "#4facfe");
                     rest = 0;
                 } else {
                     rest -= t.shield;
                     t.shield = 0;
-                    spawnText(targetId, "ŠTÍT ZNIČEN", "#4facfe");
+                    spawnText(targetId, "SHIELD BROKEN", "#4facfe");
                 }
             }
             if (rest > 0) {
@@ -788,7 +782,7 @@
         }
 
         function checkWinCondition(attackerId) {
-            if (attackerId === myPlayerId) sendGameOver(attackerId, "K.O. - ZNIČENÍ CÍLE");
+            if (attackerId === myPlayerId) sendGameOver(attackerId, "K.O. - TARGET DESTROYED");
         }
 
         function sendGameOver(winnerId, reason) {
@@ -846,7 +840,7 @@
                 
                 btn.classList.remove('free-spin');
                 if(costTxt) costTxt.style.display = 'inline';
-                btn.innerHTML = `ÚTOK <span id="cost-p${activePid}" style="font-size:0.8em; opacity:0.7">(${Math.round(currentCost)})</span>`;
+                btn.innerHTML = `ATTACK <span id="cost-p${activePid}" style="font-size:0.8em; opacity:0.7">(${Math.round(currentCost)})</span>`;
                 
                 [0.25, 0.5, 1, 2, 4].forEach(m => {
                     const b = el(`bet-p${activePid}-${m}`);
@@ -867,7 +861,7 @@
 
                 if (p.money < currentCost) {
                     btn.disabled = true;
-                    btn.innerHTML = `MÁLO KREDITŮ <span style="font-size:0.8em">(${Math.round(currentCost)})</span>`;
+                    btn.innerHTML = `LOW CREDITS <span style="font-size:0.8em">(${Math.round(currentCost)})</span>`;
                     btn.style.opacity = "0.5";
                 } else {
                     btn.style.opacity = "1";
@@ -876,11 +870,11 @@
             }
 
             if (isMyTurn) {
-                el(`log-p${activePid}`).innerText = `Jsi na řadě! (Akce: ${game.actions})`;
-                el(`log-p${inactivePid}`).innerText = "Čekej na tah...";
+                el(`log-p${activePid}`).innerText = `Your Turn! (Actions: ${game.actions})`;
+                el(`log-p${inactivePid}`).innerText = "Waiting for turn...";
             } else {
-                el(`log-p${activePid}`).innerText = `Soupeř hraje... (Akce: ${game.actions})`;
-                el(`log-p${inactivePid}`).innerText = "Jsi připraven...";
+                el(`log-p${activePid}`).innerText = `Opponent's Turn... (Actions: ${game.actions})`;
+                el(`log-p${inactivePid}`).innerText = "Ready...";
             }
             updateUI();
         }
@@ -915,7 +909,7 @@
             game.locked = true;
             el('modal-gameover').style.display = 'flex';
             const wTxt = el('go-winner');
-            wTxt.innerText = winnerId === 1 ? "HRÁČ 1 VYHRÁL" : "HRÁČ 2 VYHRÁL";
+            wTxt.innerText = winnerId === 1 ? "PLAYER 1 WINS" : "PLAYER 2 WINS";
             wTxt.style.color = winnerId === 1 ? 'var(--p1-main)' : 'var(--p2-main)';
             el('go-reason').innerText = reason;
         }
@@ -923,16 +917,22 @@
         function updateUI() {
             [1, 2].forEach(id => {
                 const p = game['p'+id];
+                // Bars
                 el(`bar-hp-p${id}`).style.width = Math.max(0, (p.hp/CFG.maxHp)*100) + "%";
                 el(`bar-shield-p${id}`).style.width = Math.min(100, (p.shield/CFG.maxShield)*100) + "%";
                 el(`txt-hp-p${id}`).innerText = Math.max(0, Math.round(p.hp)) + " HP";
                 el(`txt-shield-p${id}`).innerText = Math.round(p.shield);
+                
+                // Header Money Display (Always visible)
+                el(`header-money-p${id}`).innerText = "$" + Math.round(p.money);
+
+                // Grid stats
                 el(`val-charge-p${id}`).innerText = Math.min(Math.round(p.charge), CFG.maxCharge);
-                el(`val-money-p${id}`).innerText = Math.round(p.money);
+                // el(`val-money-p${id}`).innerText = Math.round(p.money); // Removed from grid
                 el(`val-shield-p${id}`).innerText = Math.round(p.shield);
                 el(`val-jokers-p${id}`).innerText = p.jokers + "/3";
                 el(`val-freespins-p${id}`).innerText = p.freeSpins;
-                el(`ap-p${id}`).innerText = game.turn === id ? `AKCE: ${game.actions}` : "ČEKÁ";
+                el(`ap-p${id}`).innerText = game.turn === id ? `ACTIONS: ${game.actions}` : "WAITING";
             });
         }
         function toggleModal(type) {
