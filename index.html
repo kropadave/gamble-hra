@@ -7,7 +7,7 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        /* --- GRAFIKA (beze změny) --- */
+        /* --- GRAFIKA --- */
         :root {
             --bg-dark: #08080a;
             --panel-bg: rgba(20, 20, 25, 0.7);
@@ -121,7 +121,6 @@
     </header>
 
     <div class="arena">
-        
         <div class="player-panel inactive p1-theme" id="panel-p1">
             <div>
                 <div class="header-row">
@@ -312,16 +311,15 @@
             moneyWin: 150,
             maxHp: 500,
             maxShield: 300,
-            startMoney: 1000, // ZMENA: Start budget 1000
-            maxCharge: 200    // ZMENA: Kapacita 300
+            startMoney: 1000, 
+            maxCharge: 200    
         };
 
-        // Upravená pravděpodobnost: méně peněz
         const SYMBOLS = [
             '⚔️','⚔️','⚔️','⚔️','⚔️','⚔️','⚔️','⚔️','⚔️','⚔️', 
             '⚡','⚡','⚡','⚡','⚡','⚡','⚡','⚡','⚡','⚡', 
             '🛡️','🛡️','🛡️','🛡️','🛡️', 
-            '💰','💰','💰', // ZMENA: Odebrána jedna ikona peněz
+            '💰','💰','💰', 
             '❤️','❤️','❤️',
             '💥','💥','💥',
             '🃏','🃏','🃏',
@@ -340,7 +338,6 @@
         let conn = null;
         let myPlayerId = 0; 
 
-        // Pomocná funkce pro krátký kód
         function generateShortCode() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             let res = '';
@@ -352,7 +349,6 @@
             el('lobby-start').style.display = 'none';
             el('lobby-host').style.display = 'block';
             
-            // ZMENA: Vytvoření krátkého ID
             const shortId = generateShortCode();
             peer = new Peer(shortId); 
 
@@ -362,7 +358,6 @@
                 myPlayerId = 1;
             });
             peer.on('error', (err) => {
-                // Kdyby náhodou kód existoval (malá šance), zkusíme znovu
                 if(err.type === 'unavailable-id') { 
                     peer.destroy(); 
                     setTimeout(createGame, 100); 
@@ -383,7 +378,7 @@
         }
 
         function joinGame() {
-            const code = el('join-code').value.trim().toUpperCase(); // Force uppercase
+            const code = el('join-code').value.trim().toUpperCase(); 
             if (!code) return;
             el('btn-join').innerText = "PŘIPOJOVÁNÍ...";
             el('btn-join').disabled = true;
@@ -460,7 +455,6 @@
             let target = el(`bet-p${pid}-${mult}`);
             if(target) target.classList.add('active');
             
-            // Safe update of cost text if it exists
             let costEl = el(`cost-p${pid}`);
             if(costEl) costEl.innerText = `(${CFG.baseCost * mult})`;
         }
@@ -490,11 +484,7 @@
         async function executeSpinLogic(pid, symbols) {
             const p = game['p'+pid];
             const cost = CFG.baseCost * p.bet;
-            const oid = pid === 1 ? 2 : 1;
-            const opp = game['p' + oid];
-            const mult = p.bet;
             
-            // Platba nebo Free Spin
             if (p.freeSpins > 0) {
                 p.freeSpins--;
                 spawnText(pid, "FREE SPIN!", "#00ff66");
@@ -524,13 +514,14 @@
             await runSequence(pid, symbols, reels);
         }
 
+        // --- HLAVNÍ FUNKCE VYHODNOCENÍ ---
         async function runSequence(pid, symbols, reels) {
             const p = game['p' + pid];
             const oid = pid === 1 ? 2 : 1;
             const opp = game['p' + oid];
             const mult = p.bet;
 
-            // --- DETEKCE KOMBINACÍ ---
+            // --- DETEKCE KOMBINACÍ (EPIC KOMBO) ---
             const s = symbols;
             const all4 = (s[0] === s[1] && s[1] === s[2] && s[2] === s[3]);
             const match3Start = (s[0] === s[1] && s[1] === s[2]);
@@ -538,6 +529,7 @@
             const match3Any = match3Start || match3End;
 
             let jokerBonus = false;
+            // Pokud je kombo 3 jokerů, dáváme 3 FS
             if (match3Any && (match3Start ? s[0] : s[1]) === '🃏') {
                  p.freeSpins += 3;
                  p.jokers = 0; 
@@ -545,7 +537,7 @@
                  jokerBonus = true;
             }
 
-            // EPIC EFEKT (3 nebo 4 stejné)
+            // EPIC EFEKT (3 nebo 4 stejné) - pokud to není kombo jokerů (ti už se vyřešili výše)
             if (all4 || (match3Any && !jokerBonus)) { 
                 const mainSym = match3Start ? s[0] : s[1];
                 
@@ -562,7 +554,7 @@
                     reels.forEach(r => { r.classList.remove('epic'); r.style.boxShadow = ''; r.style.transform = ''; });
                 }, 1200);
 
-                // Efekty bonusů
+                // Efekty bonusů pro komba
                 if (mainSym === '💰') {
                     p.money += 1000; spawnText(pid, '+1000 $', '#ffd700');
                 } else if (mainSym === '⚔️') {
@@ -573,15 +565,14 @@
                     p.hp = CFG.maxHp; spawnText(pid, 'HP MAX', '#00ff66');
                 } else if (mainSym === '⚡') {
                     p.charge += 100; spawnText(pid, '+100 ENERGIE', '#ffaa00');
-                    if(p.charge > CFG.maxCharge) p.charge = CFG.maxCharge; // CAP
+                    if(p.charge > CFG.maxCharge) p.charge = CFG.maxCharge; 
                 } else if (mainSym === '💥') {
-                    // ZMENA: Pokud je nabito 0, chová se jako meč (150 dmg), jinak násobí
                     if (p.charge <= 0) {
                         dealDamage(oid, 150, true);
                         spawnText(pid, 'CRITICAL 💥', '#ff3333');
                     } else {
                         p.charge *= 3; spawnText(pid, 'ENERGIE x3!', '#ffaa00');
-                        if(p.charge > CFG.maxCharge) p.charge = CFG.maxCharge; // CAP
+                        if(p.charge > CFG.maxCharge) p.charge = CFG.maxCharge;
                     }
                 } else if (mainSym === '🦹') {
                     let steal = Math.min(250, opp.money);
@@ -598,19 +589,18 @@
                 await wait(1500);
                 if (opp.hp <= 0) { checkWinCondition(pid); return; }
                 endTurnLogic(pid);
-                return; 
+                return; // Ukončíme funkci, protože kombo proběhlo
             }
 
-            // --- JEDNOTLIVÉ VÁLCE ---
+            // --- JEDNOTLIVÉ VÁLCE (Pokud není kombo) ---
             for (let i = 0; i < 4; i++) {
                 const sym = symbols[i];
                 const r = reels[i];
                 r.classList.add('active');
                 
-                // ZMENA: Zpomalení načítání odměn (800ms místo 300ms)
                 await wait(800); 
 
-                // Sběr Jokerů
+                // 1. JOKER LOGIKA
                 if (sym === '🃏') {
                     p.jokers++;
                     spawnText(pid, "JOKER!", "#bd00ff");
@@ -620,7 +610,7 @@
                         spawnText(pid, "+1 FREE SPIN", "#00ff66");
                     }
                 }
-                // Ostatní symboly
+                // 2. OSTATNÍ SYMBOLY
                 else if (sym === '🦹') {
                     let steal = Math.min(15 * mult, opp.money);
                     opp.money -= steal; p.money += steal;
@@ -629,7 +619,7 @@
                     dealDamage(oid, CFG.baseDmg * mult, false);
                 } else if (sym === '⚡') {
                     p.charge += CFG.chargeAmt * mult;
-                    if(p.charge > CFG.maxCharge) p.charge = CFG.maxCharge; // CAP
+                    if(p.charge > CFG.maxCharge) p.charge = CFG.maxCharge;
                 } else if (sym === '💥') {
                     let total = (p.charge === 0) ? (15 * mult) : (CFG.baseDmg + p.charge) * mult;
                     dealDamage(oid, total, true);
@@ -644,7 +634,6 @@
                 }
             }
             
-            // Poškození a UI Update probíhají uvnitř loopu, nyní kontrola konce
             updateUI();
             await wait(500);
             
@@ -652,6 +641,7 @@
             endTurnLogic(pid);
         }
 
+        // --- POMOCNÉ FUNKCE (NYNÍ SPRÁVNĚ DEFINOVANÉ) ---
         function dealDamage(targetId, amount, isExplosion) {
             const t = game['p' + targetId];
             let rest = amount;
@@ -728,16 +718,13 @@
             el(`btn-p${inactivePid}`).disabled = true;
 
             const p = game['p'+activePid];
-            
-            // ZMENA: Bezpečná manipulace s tlačítkem pro fix pádu při Free Spinu
             const btn = el(`btn-p${activePid}`);
             
             if (p.freeSpins > 0) {
                 btn.classList.add('free-spin');
-                btn.innerHTML = `FREE SPIN (${p.freeSpins})`; // Přepíše obsah, ale nevadí, v else se obnoví
+                btn.innerHTML = `FREE SPIN (${p.freeSpins})`; 
             } else {
                 btn.classList.remove('free-spin');
-                // Vždy znovu vygenerujeme HTML včetně spanu s ID pro cost
                 btn.innerHTML = `ÚTOK <span id="cost-p${activePid}" style="font-size:0.8em; opacity:0.7">(${Math.round(CFG.baseCost * p.bet)})</span>`;
             }
 
