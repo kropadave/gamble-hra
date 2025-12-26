@@ -490,6 +490,9 @@
         async function executeSpinLogic(pid, symbols) {
             const p = game['p'+pid];
             const cost = CFG.baseCost * p.bet;
+            const oid = pid === 1 ? 2 : 1;
+            const opp = game['p' + oid];
+            const mult = p.bet;
             
             // Platba nebo Free Spin
             if (p.freeSpins > 0) {
@@ -627,30 +630,6 @@
                 } else if (sym === '⚡') {
                     p.charge += CFG.chargeAmt * mult;
                     if(p.charge > CFG.maxCharge) p.charge = CFG.maxCharge; // CAP
-                    // spawnText(pid, `+${CFG.chargeAmt*mult} E`, "#ffaa00");
-                } else if (sym === '💥') {
-                    let total = (p.charge === 0) ? (15 * mult) : (CFG.baseDmg + p.charge) * mult;
-                    dealDamage(oid, total, true);
-                    p.charge = 0;
-                if (sym === '🃏') {
-                    p.jokers++;
-                    spawnText(pid, "JOKER!", "#bd00ff");
-                    if (p.jokers >= 3) {
-                        p.jokers = 0;
-                        p.freeSpins++;
-                        spawnText(pid, "+1 FREE SPIN", "#00ff66");
-                    }
-                }
-                // Ostatní symboly
-                else if (sym === '🦹') {
-                    let steal = Math.min(15 * mult, opp.money);
-                    opp.money -= steal; p.money += steal;
-                    spawnText(pid, `+${steal} $`, '#ff00ff');
-                } else if (sym === '⚔️') {
-                    dealDamage(oid, CFG.baseDmg * mult, false);
-                } else if (sym === '⚡') {
-                    p.charge += CFG.chargeAmt * mult;
-                    // spawnText(pid, `+${CFG.chargeAmt*mult} E`, "#ffaa00");
                 } else if (sym === '💥') {
                     let total = (p.charge === 0) ? (15 * mult) : (CFG.baseDmg + p.charge) * mult;
                     dealDamage(oid, total, true);
@@ -663,19 +642,44 @@
                     p.money += CFG.moneyWin * mult;
                     spawnText(pid, `+$${CFG.moneyWin*mult}`, "#ffd700");
                 }
+            }
+            
+            // Poškození a UI Update probíhají uvnitř loopu, nyní kontrola konce
+            updateUI();
+            await wait(500);
+            
+            if (opp.hp <= 0) { checkWinCondition(pid); return; }
+            endTurnLogic(pid);
+        }
+
+        function dealDamage(targetId, amount, isExplosion) {
+            const t = game['p' + targetId];
+            let rest = amount;
+            
+            // Štít absorbuje poškození
+            if (t.shield > 0) {
+                if (t.shield >= rest) {
+                    t.shield -= rest;
+                    rest = 0;
+                    spawnText(targetId, "BLOKOVÁNO", "#4facfe");
                 } else {
                     rest -= t.shield;
                     t.shield = 0;
                     spawnText(targetId, "ŠTÍT ZNIČEN", "#4facfe");
                 }
             }
+
+            // Zbytek jde do HP
             if (rest > 0) {
                 t.hp -= rest;
-                spawnText(targetId, `-${rest}`, isExplosion ? "#ffaa00" : "#ff3333");
+                spawnText(targetId, `-${Math.round(rest)}`, isExplosion ? "#ffaa00" : "#ff3333");
                 const pnl = el(`panel-p${targetId}`);
-                pnl.classList.add('shake');
-                setTimeout(()=>pnl.classList.remove('shake'), 400);
+                if(pnl) {
+                    pnl.classList.add('shake');
+                    setTimeout(()=>pnl.classList.remove('shake'), 400);
+                }
             }
+            updateUI();
         }
 
         function addStat(pid, stat, val, max, name, col) {
