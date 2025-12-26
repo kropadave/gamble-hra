@@ -311,9 +311,9 @@
             chargeAmt: 5,
             moneyWin: 150,
             maxHp: 500,
-            maxShield: 150,
+            maxShield: 300,
             startMoney: 1000, // ZMENA: Start budget 1000
-            maxCharge: 300    // ZMENA: Kapacita 300
+            maxCharge: 150    // ZMENA: Kapacita 300
         };
 
         // Upravená pravděpodobnost: méně peněz
@@ -633,9 +633,9 @@
                     dealDamage(oid, total, true);
                     p.charge = 0;
                 } else if (sym === '🛡️') {
-                    addStat(pid, 'shield', 10 * mult, CFG.maxShield, 'ŠTÍT', '#4facfe');
+                    addStat(pid, 'shield', 25 * mult, CFG.maxShield, 'ŠTÍT', '#4facfe');
                 } else if (sym === '❤️') {
-                    addStat(pid, 'hp', 10 * mult, CFG.maxHp, 'HP', '#00ff66');
+                    addStat(pid, 'hp', 25 * mult, CFG.maxHp, 'HP', '#00ff66');
                 } else if (sym === '💰') {
                     p.money += CFG.moneyWin * mult;
                     spawnText(pid, `+$${CFG.moneyWin*mult}`, "#ffd700");
@@ -813,3 +813,4 @@
     </script>
 </body>
 </html>
+
