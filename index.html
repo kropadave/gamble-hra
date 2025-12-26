@@ -55,12 +55,13 @@
         .charge-glow { color: var(--charge); text-shadow: 0 0 10px rgba(255, 170, 0, 0.4); animation: pulseText 2s infinite; }
         @keyframes pulseText { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         
-        /* Machine & Reels - upraveno pro 4 válce */
+        /* Machine & Reels */
         .machine-container { flex: 1; display: flex; align-items: center; justify-content: center; background: #000; border-radius: 10px; border: 2px solid #333; box-shadow: inset 0 0 40px rgba(0,0,0,0.8); position: relative; margin-bottom: 15px; padding: 10px; }
         .reel-group { display: flex; gap: 8px; width: 100%; justify-content: center; }
         .reel { flex: 1; max-width: 80px; height: 90px; background: linear-gradient(to bottom, #1a1a1a, #222); border: 1px solid #444; border-radius: 6px; font-size: 2.5rem; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
         .reel.active { border-color: var(--gold); box-shadow: 0 0 15px rgba(255, 204, 0, 0.3); background: #252525; transform: scale(1.05); z-index: 5; }
-        
+        .reel.spinning { filter: blur(2px); }
+
         .control-area { margin-top: auto; }
         .log-display { height: 25px; text-align: center; color: #aaa; font-style: italic; font-size: 0.85rem; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
         
@@ -307,14 +308,14 @@
     <script>
         // --- KONFIGURACE HRY ---
         const CFG = {
-            baseCost: 100, // Základ pro 1x
+            baseCost: 100, 
             baseDmg: 15,
             chargeAmt: 5,
             moneyWin: 150,
             maxHp: 500,
             maxShield: 300, 
             maxCharge: 200, 
-            startMoney: 1000,    
+            startMoney: 1500,    
             baseHealShield: 25
         };
 
@@ -341,9 +342,8 @@
         let conn = null;
         let myPlayerId = 0; 
 
-        // Generátor krátkého ID
         function generateShortId(length) {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Bez I, 1, O, 0 kvůli čitelnosti
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
             let result = '';
             for (let i = 0; i < length; i++) {
                 result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -355,7 +355,6 @@
             el('lobby-start').style.display = 'none';
             el('lobby-host').style.display = 'block';
             
-            // Generujeme krátké ID (např. 5 znaků)
             const shortId = generateShortId(5);
             
             peer = new Peer(shortId); 
@@ -365,7 +364,6 @@
                 myPlayerId = 1;
             });
             peer.on('error', (err) => {
-                // Pokud by náhodou ID existovalo (velmi malá šance), zkusíme znovu
                 if(err.type === 'unavailable-id') {
                     peer.destroy();
                     createGame();
@@ -387,7 +385,7 @@
         }
 
         function joinGame() {
-            const code = el('join-code').value.trim().toUpperCase(); // Automaticky na velká
+            const code = el('join-code').value.trim().toUpperCase();
             if (!code) return;
             el('btn-join').innerText = "PŘIPOJOVÁNÍ...";
             el('btn-join').disabled = true;
@@ -452,8 +450,12 @@
 
         function setBet(pid, mult) {
             if (game.locked || game.turn !== pid || pid !== myPlayerId) return;
+            const p = game['p'+pid];
+            // Pokud je free spin, nesmí se měnit sázka (je fixnutá na 4)
+            if (p.freeSpins > 0) return;
+            
             setBetUI(pid, mult);
-            game['p'+pid].bet = mult;
+            p.bet = mult;
         }
 
         function setBetUI(pid, mult) {
@@ -468,7 +470,7 @@
             const p = game['p'+pid];
             const cost = CFG.baseCost * p.bet;
 
-            // Check money only if not free spin
+            // Kontrola peněz pouze pokud to není free spin
             if (p.freeSpins <= 0 && p.money < cost) {
                 sendGameOver(pid === 1 ? 2 : 1, "BANKROT SOUPEŘE");
                 return;
@@ -506,19 +508,28 @@
 
             const reels = [1,2,3,4].map(i => el(`p${pid}-r${i}`));
             
-            let spinInterval = setInterval(() => {
-                reels.forEach(r => r.innerText = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]);
-            }, 50);
+            // --- NOVÁ ANIMACE TOČENÍ ---
+            // Roztočíme všechny válce
+            const intervals = reels.map((r) => {
+                r.classList.add('spinning');
+                return setInterval(() => {
+                    r.innerText = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+                }, 50);
+            });
 
-            await wait(800);
-            clearInterval(spinInterval);
-
-            // Zpomalené zobrazení symbolů jeden po druhém
-            for (let i = 0; i < reels.length; i++) {
+            // Postupné zastavování válců (napodobení reálného automatu)
+            for (let i = 0; i < 4; i++) {
+                await wait(600); // Čas mezi zastavením jednotlivých válců
+                clearInterval(intervals[i]);
+                reels[i].classList.remove('spinning');
                 reels[i].innerText = symbols[i];
-                await wait(350); 
+                
+                // Efekt zastavení
+                reels[i].classList.add('active');
+                setTimeout(() => reels[i].classList.remove('active'), 200);
             }
-            await wait(200); 
+
+            await wait(500); // Pauza před vyhodnocením
             await runSequence(pid, symbols, reels);
         }
 
@@ -526,13 +537,11 @@
             const p = game['p' + pid];
             const oid = pid === 1 ? 2 : 1;
             const opp = game['p' + oid];
-            const mult = p.bet;
+            const mult = p.bet; // Zde už je sázka (při free spinu je 4)
 
             // --- DETEKCE KOMBINACÍ ---
             const s = symbols;
-            // 4 stejné
             const all4 = (s[0] === s[1] && s[1] === s[2] && s[2] === s[3]);
-            // 3 stejné (0-1-2 nebo 1-2-3)
             const match3Start = (s[0] === s[1] && s[1] === s[2]);
             const match3End = (s[1] === s[2] && s[2] === s[3]);
             const match3Any = match3Start || match3End;
@@ -564,7 +573,6 @@
                     reels.forEach(r => { r.classList.remove('epic'); r.style.boxShadow = ''; r.style.transform = ''; });
                 }, 1200);
 
-                // Efekty bonusů - EPIC KOMBA (chová se jako 3 stejné)
                 if (mainSym === '💰') {
                     p.money += 1000; spawnText(pid, '+1000 $', '#ffd700');
                 } else if (mainSym === '⚔️') {
@@ -589,17 +597,16 @@
                     spawnText(pid, `+${steal} $`, '#ff00ff');
                 }
 
-                // 4 Symboly bonus: Nyní přidává 1 FREE SPIN místo extra akce
                 if (all4) {
                     p.freeSpins += 1;
                     spawnText(pid, "+1 FREE SPIN", "#00ff66");
                 }
 
                 updateUI();
-                await wait(1500);
+                await wait(2000); // Zpomalení po kombu
                 if (opp.hp <= 0) { checkWinCondition(pid); return; }
                 endTurnLogic(pid);
-                return; // Konec tahu pro kombo
+                return;
             }
 
             // --- JEDNOTLIVÉ VÁLCE (pokud nepadlo kombo) ---
@@ -607,7 +614,7 @@
                 const sym = symbols[i];
                 const r = reels[i];
                 r.classList.add('active');
-                await wait(300);
+                await wait(700); // Zpomalení při vyhodnocování (bylo 300)
 
                 if (sym === '🃏') {
                     p.jokers++;
@@ -642,6 +649,8 @@
 
                 updateUI();
                 if (opp.hp <= 0) { checkWinCondition(pid); return; }
+                
+                // Pokud hráč nemá peníze ani spiny, je konec, ale ne hned, až se dotočí
                 if (p.money <= 0 && p.freeSpins === 0) p.money = 0;
 
                 r.classList.remove('active');
@@ -715,6 +724,7 @@
             const activePid = game.turn;
             const inactivePid = activePid === 1 ? 2 : 1;
             const isMyTurn = (myPlayerId === activePid);
+            const p = game['p'+activePid];
 
             el(`panel-p${activePid}`).classList.replace('inactive', 'active');
             el(`panel-p${inactivePid}`).classList.replace('active', 'inactive');
@@ -722,23 +732,35 @@
             el(`btn-p${activePid}`).disabled = !isMyTurn;
             el(`btn-p${inactivePid}`).disabled = true;
 
-            const p = game['p'+activePid];
             const btn = el(`btn-p${activePid}`);
             const costTxt = el(`cost-p${activePid}`);
+            
+            // --- LOGIKA FREE SPINOVÉHO TLAČÍTKA A SÁZKY ---
             if (p.freeSpins > 0) {
+                // Nastavit sázku na MAX (4) pro free spin
+                p.bet = 4;
+                setBetUI(activePid, 4); 
+
                 btn.classList.add('free-spin');
-                btn.innerText = `FREE SPIN (${p.freeSpins})`;
+                btn.innerText = `FREE SPIN (400) x${p.freeSpins}`;
                 costTxt.style.display = 'none';
+
+                // Deaktivovat tlačítka sázek, aby si to hráč nemohl snížit
+                [0.25, 0.5, 1, 2, 4].forEach(m => {
+                    el(`bet-p${activePid}-${m}`).disabled = true;
+                });
             } else {
+                // Obnovit normální stav
                 btn.classList.remove('free-spin');
                 costTxt.style.display = 'inline';
                 btn.innerHTML = `ÚTOK <span id="cost-p${activePid}" style="font-size:0.8em; opacity:0.7">(${Math.round(CFG.baseCost * p.bet)})</span>`;
+                
+                // Povolit sázky
+                [0.25, 0.5, 1, 2, 4].forEach(m => {
+                    el(`bet-p${activePid}-${m}`).disabled = !isMyTurn;
+                    el(`bet-p${inactivePid}-${m}`).disabled = true;
+                });
             }
-
-            [0.25, 0.5, 1, 2, 4].forEach(m => {
-                el(`bet-p${activePid}-${m}`).disabled = !isMyTurn;
-                el(`bet-p${inactivePid}-${m}`).disabled = true;
-            });
 
             if (isMyTurn) {
                 el(`log-p${activePid}`).innerText = `Jsi na řadě! (Akce: ${game.actions})`;
